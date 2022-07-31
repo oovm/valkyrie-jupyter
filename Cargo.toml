@@ -1,9 +1,10 @@
 [workspace]
 members = ["projects/*"]
 default-members = [
-    "projects/sub_projects",
+
 ]
 exclude = [
+    "projects/playground",
     "projects/.DS_Store",
 ]
 
