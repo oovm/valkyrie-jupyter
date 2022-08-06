@@ -1,7 +1,7 @@
 [workspace]
 members = ["projects/*"]
 default-members = [
-
+    "projects/valkyrie-jupyter",
 ]
 exclude = [
     "projects/playground",
