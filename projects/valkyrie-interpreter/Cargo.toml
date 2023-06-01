@@ -7,9 +7,6 @@ repository = "https://github.com/nyar-vm/valkyrie.rs"
 license = "MPL-2.0"
 edition = "2021"
 
-[[bin]]
-name = "jupyter-valkyrie"
-path = "src/main.rs"
 
 [dependencies]
 clap = { version = "4.2.7", features = ["derive"] }
@@ -27,23 +24,16 @@ features = []
 [dependencies.valkyrie-types]
 version = "0.0.2"
 features = ["pex"]
-path = "../valkyrie-types"
+#path = "../valkyrie-types"
 
 
 [dependencies.valkyrie-parser]
 version = "0.2.1"
 features = []
-path = "../valkyrie-parser"
+#path = "../valkyrie-parser"
 
 [dependencies.valkyrie-ast]
 version = "0.0.*"
 features = []
-path = "../valkyrie-ast"
+#path = "../valkyrie-ast"
 
-[dependencies.jupyter]
-version = "0.1.5"
-#path = "D:\\Java\\jupyter-protocol\\projects\\jupyter"
-
-[dependencies.jupyter-derive]
-version = "0.0.1"
-#path = "C:\\Users\\Dell\\CLionProjects\\jupyter-protocol\\projects\\jupyter-derive"

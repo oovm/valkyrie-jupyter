@@ -1,17 +1,33 @@
 [package]
-name = "vpm"
+name = "jupyter-valkyrie"
 version = "0.0.0"
 authors = ["Aster <192607617@qq.com>"]
-description = "Valkyrie package manager"
-repository = "https://github.com/oovm/sub_projects"
-documentation = "https://docs.rs/vpm"
+description = "Jupyter Kernel for Valkyrie Language"
+repository = "https://github.com/nyar-vm/valkyrie-jupyter"
+documentation = "https://docs.rs/jupyter-valkyrie"
 readme = "Readme.md"
 license = "MPL-2.0"
 edition = "2021"
 exclude = ["package.json", "tests/**"]
 
+[[bin]]
+name = "jupyter-valkyrie"
+path = "src/main.rs"
+
 [dependencies]
 clap = { version = "4.3.0", features = ["derive"] }
+
+[dependencies.jupyter]
+version = "0.1.5"
+#path = "D:\\Java\\jupyter-protocol\\projects\\jupyter"
+
+[dependencies.jupyter-derive]
+version = "0.0.1"
+#path = "C:\\Users\\Dell\\CLionProjects\\jupyter-protocol\\projects\\jupyter-derive"
+
+[dependencies.valkyrie-interpreter]
+version = "0.0.0"
+path = "../valkyrie-interpreter"
 
 [dev-dependencies]
 
