@@ -1,7 +1,6 @@
-
 pub struct ValkyrieConfig {
-    running_time: bool,
-    image_max_pixel: usize,
+    pub running_time: bool,
+    pub image_max_pixel: usize,
 }
 
 impl Default for ValkyrieConfig {

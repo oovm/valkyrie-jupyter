@@ -1,9 +1,10 @@
-use jupyter::{Executed, JupyterTheme};
-use serde_json::Value;
+use super::*;
 
+#[derive(Debug)]
 pub struct DisplayKeywords {
     text: String,
 }
+
 impl Executed for DisplayKeywords {
     fn mime_type(&self) -> String {
         "text/html".to_string()
@@ -19,7 +20,7 @@ impl DisplayKeywords {
         Self { text: text.to_string() }
     }
 }
-
+#[derive(Debug)]
 pub struct DisplayText {
     text: String,
 }
@@ -33,7 +34,7 @@ impl Executed for DisplayText {
         Value::String(self.text.clone())
     }
 }
-
+#[derive(Debug)]
 pub struct DisplayError {
     text: String,
 }
@@ -53,7 +54,7 @@ impl DisplayError {
         Self { text: text.to_string() }
     }
 }
-
+#[derive(Debug)]
 pub struct DisplayNumber {
     r#type: String,
     text: String,
@@ -74,9 +75,9 @@ impl DisplayNumber {
         Self { r#type: String::new(), text: text.to_string() }
     }
     pub fn typed<T, S>(text: T, r#type: S) -> Self
-    where
-        T: ToString,
-        S: ToString,
+        where
+            T: ToString,
+            S: ToString,
     {
         Self { r#type: r#type.to_string(), text: text.to_string() }
     }

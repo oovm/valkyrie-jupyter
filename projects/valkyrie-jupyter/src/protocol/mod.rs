@@ -1,14 +1,16 @@
+use jupyter::{async_trait, Executed, ExecutionReply, ExecutionRequest, ExecutionResult, JupyterKernelProtocol, JupyterTheme, LanguageInfo, UnboundedSender, Value};
+use jupyter_derive::{include_png32, include_png64};
+use crate::executor::ValkyrieExecutor;
+use crate::protocol::display::DisplayError;
+
+pub mod display;
 
 #[async_trait]
-impl JupyterServerProtocol for ValkyrieExecutor {
+impl JupyterKernelProtocol for ValkyrieExecutor {
     fn language_info(&self) -> LanguageInfo {
-        LanguageInfo {
-            language: "Valkyrie".to_string(),
-            png_64: include_png64!(),
-            png_32: include_png32!(),
-            language_key: "valkyrie".to_string(),
-            file_extensions: ".vk".to_string(),
-        }
+        LanguageInfo::new("valkyrie", "Valkyrie")
+            .with_syntax("scala", "scala")
+            .with_version(env!("CARGO_PKG_VERSION"))
     }
 
     async fn running(&mut self, code: ExecutionRequest) -> ExecutionReply {
@@ -20,6 +22,7 @@ impl JupyterServerProtocol for ValkyrieExecutor {
             }
         }
     }
+
 
     fn running_time(&self, time: f64) -> String {
         if self.config.running_time { format!("<sub>Elapsed time: {:.2} seconds.</sub>", time) } else { String::new() }

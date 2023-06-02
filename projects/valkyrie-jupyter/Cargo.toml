@@ -15,6 +15,7 @@ name = "jupyter-valkyrie"
 path = "src/main.rs"
 
 [dependencies]
+async-trait = "0.1.68"
 clap = { version = "4.3.0", features = ["derive"] }
 
 [dependencies.jupyter]
@@ -26,7 +27,7 @@ version = "0.0.1"
 #path = "C:\\Users\\Dell\\CLionProjects\\jupyter-protocol\\projects\\jupyter-derive"
 
 [dependencies.valkyrie-interpreter]
-version = "0.0.0"
+version = "0.0.*"
 path = "../valkyrie-interpreter"
 
 [dev-dependencies]

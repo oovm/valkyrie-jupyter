@@ -14,7 +14,7 @@ RUN usermod -d /newhome/jovyan jovyan
 # Make sure the contents of our repo are in ${HOME}
 RUN git clone https://github.com/nyar-vm/valkyrie-jupyter.git --branch dev
 RUN cp -r ./valkyrie-jupyter/projects/playground /home/jovyan
-RUN rm -rf ./valkyrie-jupyter/projects/playground
+RUN rm -rf ./valkyrie-jupyter
 RUN chown -R 1000 /home/jovyan
 # Switch to jovyan, good practice
 USER jovyan

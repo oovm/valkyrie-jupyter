@@ -1,19 +1,45 @@
-use crate::ValkyrieExecutor;
 use serde_json::Value;
 use std::{
     collections::BTreeMap,
     str::FromStr,
     sync::{Arc, Mutex},
 };
-use valkyrie_ast::{ExpressionBody, NamePathNode, NumberLiteralNode, StringLiteralNode};
-use valkyrie_types::{ValkyrieDataTable, ValkyrieError, ValkyrieResult, ValkyrieValue};
+use valkyrie_ast::{ExpressionBody, ExpressionNode, NamePathNode, NumberLiteralNode, StatementNode, StatementType, StringLiteralNode};
+use valkyrie_parser::{ReplRoot, ThisParser};
+use valkyrie_types::{ValkyrieDataTable, ValkyrieError, ValkyrieResult, ValkyrieValue, SyntaxError, JsonValue};
+use crate::ValkyrieVM;
 
-pub struct ExecutorScope {
-    parent: Option<Arc<Mutex<ExecutorScope>>>,
+pub struct ValkyrieScope {
+    parent: Option<Arc<Mutex<ValkyrieScope>>>,
     variables: BTreeMap<String, ValkyrieValue>,
 }
 
-impl ValkyrieExecutor {
+pub fn parse_repl(text: &str) -> ValkyrieResult<Vec<StatementNode>> {
+    Ok(ReplRoot::parse_text(text)?.statements)
+}
+
+impl ValkyrieVM {
+    pub async fn execute_statement(&mut self, stmt: StatementNode) -> ValkyrieResult<ValkyrieValue> {
+        self.execute_stmt(stmt.r#type).await
+    }
+    pub(crate) async fn execute_stmt(&mut self, stmt: StatementType) -> ValkyrieResult<ValkyrieValue> {
+        match stmt {
+            StatementType::Nothing => { todo!() }
+            StatementType::Document(_) => { todo!() }
+            StatementType::Namespace(_) => { todo!() }
+            StatementType::Import(_) => { todo!() }
+            StatementType::Class(_) => { todo!() }
+            StatementType::While(_) => { todo!() }
+            StatementType::For(_) => { todo!() }
+            StatementType::LetBind(_) => { todo!() }
+            StatementType::Function(_) => { todo!() }
+            StatementType::Control(_) => { todo!() }
+            StatementType::Expression(_) => { todo!() }
+        }
+    }
+    pub(crate) async fn execute_expr_node(&mut self, expr: ExpressionNode) -> ValkyrieResult<ValkyrieValue> {
+        self.execute_expr(expr.body).await
+    }
     pub(crate) async fn execute_expr(&mut self, expr: ExpressionBody) -> ValkyrieResult<ValkyrieValue> {
         match expr {
             ExpressionBody::Placeholder => Err(ValkyrieError::custom("Placeholder expression should never be executed")),
@@ -50,6 +76,7 @@ impl ValkyrieExecutor {
             ExpressionBody::GenericCall(_) => {
                 todo!()
             }
+            ExpressionBody::New(_) => { todo!() }
         }
     }
     pub(crate) async fn execute_number(&mut self, number: NumberLiteralNode) -> ValkyrieResult<ValkyrieValue> {
@@ -67,7 +94,7 @@ impl ValkyrieExecutor {
     }
     pub(crate) async fn execute_symbol(&mut self, mut number: NamePathNode) -> ValkyrieResult<ValkyrieValue> {
         match number.names.len() {
-            0 => Err(ValkyrieError::syntax_error("Unreachable empty symbol name", number.span)),
+            0 => Err(SyntaxError::new("Unreachable empty symbol name").with_span(&number.span).into()),
             1 => {
                 let head = unsafe { number.names.pop().unwrap_unchecked() };
                 match head.name.as_str() {
@@ -83,18 +110,20 @@ impl ValkyrieExecutor {
     pub(crate) async fn execute_string(&mut self, mut string: StringLiteralNode) -> ValkyrieResult<ValkyrieValue> {
         match string.unit {
             Some(s) => match s.name.as_str() {
-                "re" => todo!(),
-                "sh" => todo!(),
-                "json" => self.execute_json(&string.value).await,
+                // "re" => todo!(),
+                "sh" => self.execute_shell(&string.value).await,
+                "json" => self.execute_json(&string.value),
                 _ => Err(ValkyrieError::custom(format!("Unknown handler: {}", s.name))),
             },
             // TODO: template string
             None => Ok(ValkyrieValue::UTF8String(Arc::new(string.value))),
         }
     }
-    pub(crate) async fn execute_json(&mut self, string: &str) -> ValkyrieResult<ValkyrieValue> {
-        // let value: Value = serde_json::from_str(string)?;
-        // Ok(value)
-        todo!()
+    pub(crate) fn execute_json(&mut self, string: &str) -> ValkyrieResult<ValkyrieValue> {
+        let value = JsonValue::from_str(string)?;
+        Ok(ValkyrieValue::Json(Arc::new(value)))
+    }
+    pub(crate) async fn execute_shell(&self, shell: &str) -> ValkyrieResult<ValkyrieValue> {
+        Ok(ValkyrieValue::UTF8String(Arc::new(shell.to_string())))
     }
 }
