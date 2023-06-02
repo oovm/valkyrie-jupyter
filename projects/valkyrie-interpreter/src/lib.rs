@@ -22,6 +22,7 @@ pub struct ValkyrieVM {
 }
 
 
+
 impl Default for ValkyrieVM {
     fn default() -> Self {
         ValkyrieVM { top_scope: ValkyrieScope::default() }
