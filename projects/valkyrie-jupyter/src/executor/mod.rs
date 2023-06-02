@@ -55,7 +55,7 @@ impl ValkyrieExecutor {
             ValkyrieValue::Variant(_) => {
                 todo!()
             }
-            ValkyrieValue::Json(v) => self.sockets.send_executed(DisplayNumber::new(v)).await,
+            ValkyrieValue::Json(v) => self.sockets.send_executed((*v).clone()).await,
             ValkyrieValue::NDArray(_) => {
                 todo!()
             }

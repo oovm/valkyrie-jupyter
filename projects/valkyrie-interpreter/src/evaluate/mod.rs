@@ -4,24 +4,72 @@ use std::{
     str::FromStr,
     sync::{Arc, Mutex},
 };
-use valkyrie_ast::{ExpressionBody, ExpressionNode, LetBindNode, NamePathNode, NumberLiteralNode, PatternType, PrettyPrint, StatementNode, StatementType, StringLiteralNode};
+use valkyrie_ast::{ExpressionBody, ExpressionNode, IdentifierNode, LetBindNode, ModifierPart, NamePathNode, NumberLiteralNode, PatternType, PrettyPrint, StatementNode, StatementType, StringLiteralNode, TableKind, TableNode};
 use valkyrie_parser::{ReplRoot, ThisParser};
 use valkyrie_types::{ValkyrieDataTable, ValkyrieError, ValkyrieResult, ValkyrieValue, SyntaxError, JsonValue};
 use crate::ValkyrieVM;
 
+mod let_binding;
+
 pub struct ValkyrieScope {
     parent: Option<Arc<Mutex<ValkyrieScope>>>,
-    variables: BTreeMap<String, ValkyrieValue>,
+    variables: BTreeMap<String, ValkyrieVariable>,
+}
+
+pub struct ValkyrieVariable {
+    /// Weathers the name can be rebinding.
+    protected: bool,
+    /// Weathers the value can change.
+    mutable: bool,
+    /// A mutable value can't be changed to a value with a different type.
+    typing: Option<String>,
+    /// The stored value.
+    value: ValkyrieValue,
 }
 
 impl ValkyrieScope {
-    pub fn define_variable<S>(&mut self, name: S, value: ValkyrieValue) -> ValkyrieResult<ValkyrieValue> where S: ToString {
+    pub fn define_variable<S>(&mut self, name: S, attributes: ModifierPart, value: ValkyrieValue) -> ValkyrieResult<ValkyrieValue> where S: ToString {
+        let name = name.to_string();
         let out = value.clone();
-        match self.variables.insert(name.to_string(), value) {
+        match self.variables.get(name.as_str()) {
+            Some(s) => {
+                if s.protected {
+                    Err(ValkyrieError::custom(format!("Variable {} can't rebind", name)))?
+                }
+            }
+            None => {}
+        }
+        let protected = attributes.contains("final");
+        let mutable = attributes.contains("mut");
+        let var = ValkyrieVariable {
+            protected,
+            mutable,
+            typing: None,
+            value,
+        };
+        match self.variables.insert(name.to_string(), var) {
             Some(_) => {}
             None => {}
         }
         Ok(out)
+    }
+    pub fn get_variable(&self, name: &str) -> ValkyrieResult<ValkyrieValue> {
+        match self.variables.get(name) {
+            Some(s) => {
+                Ok(s.value.clone())
+            }
+            None => {
+                match &self.parent {
+                    Some(s) => {
+                        let s = s.lock().unwrap();
+                        s.get_variable(name)
+                    }
+                    None => {
+                        Err(ValkyrieError::custom(format!("Undefined symbol: {}", name)))?
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -71,34 +119,6 @@ impl ValkyrieVM {
     pub(crate) async fn execute_expr_node(&mut self, expr: ExpressionNode) -> ValkyrieResult<ValkyrieValue> {
         self.execute_expr(expr.body).await
     }
-    pub(crate) async fn execute_let_bind(&mut self, bind: LetBindNode) -> ValkyrieResult<ValkyrieValue> {
-        match bind.pattern {
-            PatternType::Tuple(t) => {
-                match t.as_slice() {
-                    [] => {
-                        Err(ValkyrieError::custom("Empty tuple patterns are not allowed"))
-                    }
-                    [v] => {
-                        let rhs = match bind.body {
-                            None => {
-                                ValkyrieValue::Nothing
-                            }
-                            Some(v) => {
-                                self.execute_expr_node(v).await?
-                            }
-                        };
-                        self.top_scope.define_variable(&v.key.name, rhs)
-                    }
-                    _ => {
-                        return Err(ValkyrieError::custom("Tuple patterns are not yet supported"));
-                    }
-                }
-            }
-            PatternType::Case => {
-                Err(ValkyrieError::custom("Case patterns are not yet supported"))
-            }
-        }
-    }
 
     pub(crate) async fn execute_expr(&mut self, expr: ExpressionBody) -> ValkyrieResult<ValkyrieValue> {
         match expr {
@@ -116,7 +136,7 @@ impl ValkyrieVM {
             ExpressionBody::Symbol(v) => self.execute_symbol(*v).await,
             ExpressionBody::String(v) => self.execute_string(*v).await,
             ExpressionBody::Table(v) => {
-                todo!()
+                self.execute_table(*v).await
             }
             ExpressionBody::Apply(_) => {
                 todo!()
@@ -163,33 +183,47 @@ impl ValkyrieVM {
                     "false" => Ok(ValkyrieValue::Boolean(false)),
                     "null" => Ok(ValkyrieValue::Null),
                     _ => {
-                        match self.top_scope.variables.get(&head.name) {
-                            Some(v) => Ok(v.clone()),
-                            None => Err(ValkyrieError::custom(format!("Undefined symbol: {}", symbol.pretty_string(144)))),
-                        }
+                        self.top_scope.get_variable(&head.name)
                     }
                 }
             }
             _ => Err(ValkyrieError::custom(format!("Unknown symbol: {:?}", symbol.names))),
         }
     }
+    pub(crate) async fn execute_table(&mut self, table: TableNode) -> ValkyrieResult<ValkyrieValue> {
+        match table.kind {
+            TableKind::Tuple => {
+                todo!()
+            }
+            TableKind::OffsetTable => { todo!() }
+            TableKind::OrdinalTable => { todo!() }
+        }
+    }
+
     pub(crate) async fn execute_string(&mut self, mut string: StringLiteralNode) -> ValkyrieResult<ValkyrieValue> {
-        match string.unit {
+        match &string.unit {
             Some(s) => match s.name.as_str() {
-                // "re" => todo!(),
+                "r" => Ok(ValkyrieValue::UTF8String(Arc::new(string.as_raw()))),
+                "re" => self.execute_regex(&string.value),
                 "sh" => self.execute_shell(&string.value).await,
                 "json" => self.execute_json(&string.value),
                 _ => Err(ValkyrieError::custom(format!("Unknown handler: {}", s.name))),
             },
             // TODO: template string
-            None => Ok(ValkyrieValue::UTF8String(Arc::new(string.value))),
+            None => {
+                Ok(ValkyrieValue::UTF8String(Arc::new(string.as_escaped())))
+            }
         }
     }
-    pub(crate) fn execute_json(&mut self, string: &str) -> ValkyrieResult<ValkyrieValue> {
+    fn execute_regex(&mut self, string: &str) -> ValkyrieResult<ValkyrieValue> {
         let value = JsonValue::from_str(string)?;
         Ok(ValkyrieValue::Json(Arc::new(value)))
     }
-    pub(crate) async fn execute_shell(&self, shell: &str) -> ValkyrieResult<ValkyrieValue> {
+    fn execute_json(&mut self, string: &str) -> ValkyrieResult<ValkyrieValue> {
+        let value = JsonValue::from_str(string)?;
+        Ok(ValkyrieValue::Json(Arc::new(value)))
+    }
+    async fn execute_shell(&self, shell: &str) -> ValkyrieResult<ValkyrieValue> {
         Ok(ValkyrieValue::UTF8String(Arc::new(shell.to_string())))
     }
 }
