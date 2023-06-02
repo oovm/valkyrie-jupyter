@@ -1,6 +1,7 @@
 [workspace]
 members = ["projects/*"]
 default-members = [
+    "projects/valkyrie-interpreter",
     "projects/valkyrie-jupyter",
 ]
 exclude = [
@@ -11,3 +12,4 @@ exclude = [
 [profile.release]
 lto = true
 panic = "abort"
+

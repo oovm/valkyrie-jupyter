@@ -7,11 +7,16 @@
 
 
 use std::fmt::{Debug, Formatter};
+use std::io::Stderr;
+use std::panic::{Location, PanicInfo};
 use std::path::PathBuf;
+use std::str::FromStr;
 use jupyter::{InstallAction, JupyterResult, OpenAction, StartAction, UninstallAction};
 use crate::executor::ValkyrieExecutor;
 use clap::Parser;
 use clap::Subcommand;
+use url::Url;
+use std::io::Write;
 
 mod executor;
 mod protocol;
@@ -32,7 +37,8 @@ pub struct JupyterApplication {
     command: JupyterCommands,
 }
 
-#[derive( Subcommand)]
+/// The subcommands of the application
+#[derive(Subcommand)]
 enum JupyterCommands {
     Open(Box<OpenAction>),
     Start(Box<StartAction>),
@@ -47,6 +53,7 @@ impl Debug for JupyterCommands {
 }
 
 impl JupyterApplication {
+    /// Run the application
     pub fn run(&self) -> JupyterResult<()> {
         let config = ValkyrieExecutor::default();
         match &self.command {
@@ -56,4 +63,23 @@ impl JupyterApplication {
             JupyterCommands::Uninstall(v) => v.run(config),
         }
     }
+}
+
+fn main() -> JupyterResult<()> {
+    std::panic::set_hook(Box::new(|info| {
+        let mut host_stderr = std::io::stderr().lock();
+        match info.location() {
+            None => {}
+            Some(s) => {
+                match Url::from_file_path(s.file()) {
+                    Ok(o) => {
+                        writeln!(host_stderr, "{}:{}:{}", o, s.line(), s.column()).ok();
+                    }
+                    Err(_) => {}
+                }
+            }
+        }
+    }));
+    tracing_subscriber::fmt::init();
+    JupyterApplication::parse().run()
 }

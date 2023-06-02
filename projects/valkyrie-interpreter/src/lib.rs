@@ -14,13 +14,16 @@ mod traits;
 pub use valkyrie_types::{ValkyrieValue};
 pub use valkyrie_types::{ValkyrieError, ValkyrieResult};
 pub use crate::evaluate::parse_repl;
+use crate::evaluate::ValkyrieScope;
 
 
-pub struct ValkyrieVM {}
+pub struct ValkyrieVM {
+    top_scope: ValkyrieScope,
+}
 
 
 impl Default for ValkyrieVM {
     fn default() -> Self {
-        ValkyrieVM {}
+        ValkyrieVM { top_scope: ValkyrieScope::default() }
     }
 }
