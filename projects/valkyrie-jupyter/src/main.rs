@@ -7,8 +7,8 @@
 
 
 use std::fmt::{Debug, Formatter};
-use std::io::Stderr;
-use std::panic::{Location, PanicInfo};
+
+
 use std::path::PathBuf;
 use std::str::FromStr;
 use jupyter::{InstallAction, JupyterResult, OpenAction, StartAction, UninstallAction};

@@ -35,7 +35,7 @@ features = []
 path = 'C:\Users\Dell\CLionProjects\valkyrie.rs\projects\valkyrie-ast'
 
 #[dependencies.valkyrie-error]
-#version = "0.1.*"
-#features = []
+#version = "0.1.3"
+#features = ["json5"]
 #path = 'C:\Users\Dell\CLionProjects\valkyrie.rs\projects\valkyrie-errors'
 #

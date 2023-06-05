@@ -1,5 +1,6 @@
 use super::*;
 
+/// A trait for types that can be displayed in the Jupyter notebook.
 #[derive(Debug)]
 pub struct DisplayKeywords {
     text: String,

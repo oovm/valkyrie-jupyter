@@ -134,7 +134,7 @@ impl ValkyrieVM {
                                 Ok(v.value)
                             }
                             ValkyrieEntry::Function(v) => {
-                               Err(ValkyrieError::custom(format!("Symbol is a function: {:?}", v)))
+                                Err(ValkyrieError::custom(format!("Symbol is a function: {:?}", v)))
                             }
                         }
                     }
@@ -174,7 +174,7 @@ impl ValkyrieVM {
         Ok(ValkyrieValue::Json(Arc::new(value)))
     }
     fn execute_json(&mut self, string: &str) -> ValkyrieResult<ValkyrieValue> {
-        let value = JsonValue::from_str(string)?;
+        let value = json5::from_str(string)?;
         Ok(ValkyrieValue::Json(Arc::new(value)))
     }
     async fn execute_shell(&self, shell: &str) -> ValkyrieResult<ValkyrieValue> {
