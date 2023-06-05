@@ -31,3 +31,4 @@ impl JupyterKernelProtocol for ValkyrieExecutor {
         self.sockets.bind_execution_socket(sender).await
     }
 }
+
