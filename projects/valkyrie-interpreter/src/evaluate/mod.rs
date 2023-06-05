@@ -4,83 +4,13 @@ use std::{
     str::FromStr,
     sync::{Arc, Mutex},
 };
-use valkyrie_ast::{ExpressionBody, ExpressionNode, IdentifierNode, LetBindNode, ModifierPart, NamePathNode, NumberLiteralNode, PatternType, PrettyPrint, StatementNode, StatementType, StringLiteralNode, TableKind, TableNode};
+use valkyrie_ast::{CallNode, ExpressionBody, ExpressionNode, IdentifierNode, LetBindNode, ModifierPart, NamePathNode, NumberLiteralNode, PatternType, PrettyPrint, StatementNode, StatementType, StringLiteralNode, SubscriptNode, SubscriptTermNode, TableKind, TableNode};
 use valkyrie_parser::{ReplRoot, ThisParser};
-use valkyrie_types::{ValkyrieDataTable, ValkyrieError, ValkyrieResult, ValkyrieValue, SyntaxError, JsonValue};
-use crate::ValkyrieVM;
+use valkyrie_types::{ValkyrieTable, ValkyrieError, ValkyrieResult, ValkyrieValue, SyntaxError, JsonValue, ValkyrieFunction};
+use crate::{ValkyrieEntry, ValkyrieVM};
+use async_recursion::async_recursion;
 
 mod let_binding;
-
-pub struct ValkyrieScope {
-    parent: Option<Arc<Mutex<ValkyrieScope>>>,
-    variables: BTreeMap<String, ValkyrieVariable>,
-}
-
-pub struct ValkyrieVariable {
-    /// Weathers the name can be rebinding.
-    protected: bool,
-    /// Weathers the value can change.
-    mutable: bool,
-    /// A mutable value can't be changed to a value with a different type.
-    typing: Option<String>,
-    /// The stored value.
-    value: ValkyrieValue,
-}
-
-impl ValkyrieScope {
-    pub fn define_variable<S>(&mut self, name: S, attributes: ModifierPart, value: ValkyrieValue) -> ValkyrieResult<ValkyrieValue> where S: ToString {
-        let name = name.to_string();
-        let out = value.clone();
-        match self.variables.get(name.as_str()) {
-            Some(s) => {
-                if s.protected {
-                    Err(ValkyrieError::custom(format!("Variable {} can't rebind", name)))?
-                }
-            }
-            None => {}
-        }
-        let protected = attributes.contains("final");
-        let mutable = attributes.contains("mut");
-        let var = ValkyrieVariable {
-            protected,
-            mutable,
-            typing: None,
-            value,
-        };
-        match self.variables.insert(name.to_string(), var) {
-            Some(_) => {}
-            None => {}
-        }
-        Ok(out)
-    }
-    pub fn get_variable(&self, name: &str) -> ValkyrieResult<ValkyrieValue> {
-        match self.variables.get(name) {
-            Some(s) => {
-                Ok(s.value.clone())
-            }
-            None => {
-                match &self.parent {
-                    Some(s) => {
-                        let s = s.lock().unwrap();
-                        s.get_variable(name)
-                    }
-                    None => {
-                        Err(ValkyrieError::custom(format!("Undefined symbol: {}", name)))?
-                    }
-                }
-            }
-        }
-    }
-}
-
-impl Default for ValkyrieScope {
-    fn default() -> Self {
-        Self {
-            parent: None,
-            variables: Default::default(),
-        }
-    }
-}
 
 pub fn parse_repl(text: &str) -> ValkyrieResult<Vec<StatementNode>> {
     Ok(ReplRoot::parse_text(text)?.statements)
@@ -119,7 +49,7 @@ impl ValkyrieVM {
     pub(crate) async fn execute_expr_node(&mut self, expr: ExpressionNode) -> ValkyrieResult<ValkyrieValue> {
         self.execute_expr(expr.body).await
     }
-
+    #[async_recursion]
     pub(crate) async fn execute_expr(&mut self, expr: ExpressionBody) -> ValkyrieResult<ValkyrieValue> {
         match expr {
             ExpressionBody::Placeholder => Err(ValkyrieError::custom("Placeholder expression should never be executed")),
@@ -150,8 +80,8 @@ impl ValkyrieVM {
             ExpressionBody::LambdaDot(_) => {
                 todo!()
             }
-            ExpressionBody::Subscript(_) => {
-                todo!()
+            ExpressionBody::Subscript(v) => {
+                self.execute_subscript(*v).await
             }
             ExpressionBody::GenericCall(_) => {
                 todo!()
@@ -159,11 +89,27 @@ impl ValkyrieVM {
             ExpressionBody::New(_) => { todo!() }
         }
     }
+    pub(crate) async fn execute_subscript(&mut self, call: CallNode<SubscriptNode>) -> ValkyrieResult<ValkyrieValue> {
+        let base = self.execute_expr(call.base).await?;
+        let mut subs = vec![];
+        for term in call.rest.terms {
+            match term {
+                SubscriptTermNode::Index(node) => {
+                    subs.push(self.execute_expr_node(node).await?)
+                }
+                SubscriptTermNode::Slice(node) => {
+                    todo!()
+                }
+            }
+        }
+        Err(ValkyrieError::custom("Subscripting not implemented"))
+    }
+
     pub(crate) async fn execute_number(&mut self, number: NumberLiteralNode) -> ValkyrieResult<ValkyrieValue> {
         match number.unit {
             Some(s) => match s.name.as_str() {
-                "f32" => Ok(ValkyrieValue::Float32(number.value.parse::<f32>()?)),
-                "f64" => Ok(ValkyrieValue::Float64(number.value.parse::<f64>()?)),
+                "f32" => Ok(ValkyrieValue::Decimal(number.value.parse::<f64>()?)),
+                "f64" => Ok(ValkyrieValue::Decimal(number.value.parse::<f64>()?)),
                 _ => Err(ValkyrieError::custom(format!("Unknown unit: {}", s.name))),
             },
             None => match number.value.parse() {
@@ -183,7 +129,14 @@ impl ValkyrieVM {
                     "false" => Ok(ValkyrieValue::Boolean(false)),
                     "null" => Ok(ValkyrieValue::Null),
                     _ => {
-                        self.top_scope.get_variable(&head.name)
+                        match self.top_scope.get_variable(&head.name)? {
+                            ValkyrieEntry::Variable(v) => {
+                                Ok(v.value)
+                            }
+                            ValkyrieEntry::Function(v) => {
+                               Err(ValkyrieError::custom(format!("Symbol is a function: {:?}", v)))
+                            }
+                        }
                     }
                 }
             }
@@ -207,6 +160,7 @@ impl ValkyrieVM {
                 "re" => self.execute_regex(&string.value),
                 "sh" => self.execute_shell(&string.value).await,
                 "json" => self.execute_json(&string.value),
+                "html" => Ok(ValkyrieValue::Html(Arc::new(string.as_raw()))),
                 _ => Err(ValkyrieError::custom(format!("Unknown handler: {}", s.name))),
             },
             // TODO: template string

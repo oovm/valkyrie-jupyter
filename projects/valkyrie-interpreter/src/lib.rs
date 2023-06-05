@@ -10,17 +10,16 @@ use valkyrie_parser::ThisParser;
 
 mod evaluate;
 mod traits;
+mod scope;
 
 pub use valkyrie_types::{ValkyrieValue};
 pub use valkyrie_types::{ValkyrieError, ValkyrieResult};
 pub use crate::evaluate::parse_repl;
-use crate::evaluate::ValkyrieScope;
-
+pub use crate::scope::{ValkyrieEntry, ValkyrieScope, variable::ValkyrieVariable, function::ValkyrieFunction};
 
 pub struct ValkyrieVM {
     top_scope: ValkyrieScope,
 }
-
 
 
 impl Default for ValkyrieVM {

@@ -1,7 +1,6 @@
-use jupyter::{async_trait, Executed, ExecutionReply, ExecutionRequest, ExecutionResult, JupyterKernelProtocol, JupyterTheme, LanguageInfo, UnboundedSender, Value};
+use jupyter::{async_trait, Executed, ExecutionReply, ExecutionRequest, ExecutionResult, JupyterError, JupyterKernelProtocol, JupyterTheme, LanguageInfo, UnboundedSender, Value};
 use jupyter_derive::{include_png32, include_png64};
 use crate::executor::ValkyrieExecutor;
-use crate::protocol::display::DisplayError;
 
 pub mod display;
 
@@ -17,7 +16,7 @@ impl JupyterKernelProtocol for ValkyrieExecutor {
         match self.repl_parse_and_run(&code.code).await {
             Ok(_) => code.as_reply(true, code.execution_count),
             Err(e) => {
-                self.sockets.send_executed(DisplayError::new(e.to_string())).await;
+                self.sockets.send_executed(JupyterError::any(e.to_string())).await;
                 code.as_reply(false, code.execution_count)
             }
         }

@@ -22,8 +22,9 @@ mod executor;
 mod protocol;
 mod config;
 
-pub use crate::protocol::{display::{DisplayError, DisplayKeywords, DisplayNumber, DisplayText}};
+pub use crate::protocol::{display::{ DisplayKeywords, DisplayNumber, DisplayText}};
 
+///
 #[derive(Debug, Parser)]
 #[command(author, version, about, long_about = None)]
 pub struct JupyterApplication {

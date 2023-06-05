@@ -10,8 +10,12 @@ impl Executed for DisplayKeywords {
         "text/html".to_string()
     }
 
-    fn as_json(&self, _: JupyterTheme) -> Value {
-        Value::String(format!(r#"<span style="color: pink">{}</span>"#, self.text))
+    fn as_json(&self, theme: JupyterTheme) -> Value {
+        let color = match theme {
+            JupyterTheme::Light => "#A626A4",
+            JupyterTheme::Dark => "#A626A4",
+        };
+        Value::String(format!(r#"<span style="color: {color}">{}</span>"#, self.text))
     }
 }
 
@@ -20,6 +24,7 @@ impl DisplayKeywords {
         Self { text: text.to_string() }
     }
 }
+
 #[derive(Debug)]
 pub struct DisplayText {
     text: String,
@@ -34,26 +39,7 @@ impl Executed for DisplayText {
         Value::String(self.text.clone())
     }
 }
-#[derive(Debug)]
-pub struct DisplayError {
-    text: String,
-}
 
-impl Executed for DisplayError {
-    fn mime_type(&self) -> String {
-        "text/html".to_string()
-    }
-
-    fn as_json(&self, _: JupyterTheme) -> Value {
-        Value::String(format!(r#"<span style="color: red">{}</span>"#, self.text))
-    }
-}
-
-impl DisplayError {
-    pub fn new<S: ToString>(text: S) -> Self {
-        Self { text: text.to_string() }
-    }
-}
 #[derive(Debug)]
 pub struct DisplayNumber {
     r#type: String,
@@ -65,8 +51,12 @@ impl Executed for DisplayNumber {
         "text/html".to_string()
     }
 
-    fn as_json(&self, _: JupyterTheme) -> Value {
-        Value::String(format!(r#"<span class="color: oriange">{}</span>"#, self.text))
+    fn as_json(&self, theme: JupyterTheme) -> Value {
+        let color = match theme {
+            JupyterTheme::Light => "#986801",
+            JupyterTheme::Dark => "#986801",
+        };
+        Value::String(format!(r#"<span style="color: {color}">{}</span>"#, self.text))
     }
 }
 

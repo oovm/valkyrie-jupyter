@@ -1,7 +1,8 @@
-use jupyter::JupyterKernelSockets;
+use jupyter::{JupyterError, JupyterKernelSockets};
+use jupyter::value_type::HtmlText;
 use valkyrie_interpreter::{parse_repl, ValkyrieResult, ValkyrieValue, ValkyrieVM};
 use crate::config::ValkyrieConfig;
-use crate::{DisplayError, DisplayKeywords, DisplayNumber};
+use crate::{DisplayKeywords, DisplayNumber};
 
 pub struct ValkyrieExecutor {
     pub(crate) vm: ValkyrieVM,
@@ -27,7 +28,7 @@ impl ValkyrieExecutor {
                     // } else {
                     //
                     // }
-                    self.sockets.send_executed(DisplayError::new(format!("Error: {}", e))).await;
+                    self.sockets.send_executed(JupyterError::any(format!("Error: {}", e))).await;
                 }
             }
         }
@@ -42,8 +43,7 @@ impl ValkyrieExecutor {
             ValkyrieValue::Unit => self.sockets.send_executed(DisplayKeywords::new("( )")).await,
             ValkyrieValue::Boolean(v) => self.sockets.send_executed(DisplayKeywords::new(v)).await,
             ValkyrieValue::Integer(v) => self.sockets.send_executed(DisplayNumber::new(v)).await,
-            ValkyrieValue::Float32(v) => self.sockets.send_executed(DisplayNumber::new(v)).await,
-            ValkyrieValue::Float64(v) => self.sockets.send_executed(DisplayNumber::new(v)).await,
+            ValkyrieValue::Decimal(v) => self.sockets.send_executed(DisplayNumber::new(v)).await,
             ValkyrieValue::UTF8Character(v) => self.sockets.send_executed(v.to_string()).await,
             ValkyrieValue::UTF8String(v) => self.sockets.send_executed(v.as_str().to_string()).await,
             ValkyrieValue::Bytes(_) => {
@@ -65,8 +65,11 @@ impl ValkyrieExecutor {
             ValkyrieValue::DataFrame(_) => {
                 todo!()
             }
-            ValkyrieValue::DataTable(_) => {
+            ValkyrieValue::Table(_) => {
                 todo!()
+            }
+            ValkyrieValue::Html(v) => {
+                self.sockets.send_executed(HtmlText::new(v)).await;
             }
         }
     }
