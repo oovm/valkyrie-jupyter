@@ -1,6 +1,6 @@
 use jupyter::{JupyterError, JupyterKernelSockets};
 use jupyter::value_type::HtmlText;
-use valkyrie_interpreter::{parse_repl, ValkyrieResult, ValkyrieValue, ValkyrieVM};
+use valkyrie_interpreter::{parse_repl, ValkyrieOutput, ValkyrieResult, ValkyrieValue, ValkyrieVM};
 use crate::config::ValkyrieConfig;
 use crate::{DisplayKeywords, DisplayNumber};
 
@@ -21,15 +21,13 @@ impl ValkyrieExecutor {
         let terms = parse_repl(code)?;
         for i in terms {
             match self.vm.execute_statement(i).await {
-                Ok(v) => self.send_value(v).await,
-                Err(e) => {
-                    // if e.is_fatal() {
-                    //     return Err(e);
-                    // } else {
-                    //
-                    // }
-                    self.sockets.send_executed(JupyterError::any(format!("Error: {}", e))).await;
+                ValkyrieOutput::Normal(v) | ValkyrieOutput::Return(v) => {
+                    self.send_value(v).await
                 }
+                ValkyrieOutput::Error(e) => { self.sockets.send_executed(JupyterError::any(format!("Error: {}", e))).await;}
+                ValkyrieOutput::Throw(e) => { self.sockets.send_executed(JupyterError::any(format!("Error: Unbounded throw {:?}", e))).await;}
+                ValkyrieOutput::Break(e) => { self.sockets.send_executed(JupyterError::any(format!("Error: Unbounded break {}", e))).await;}
+                ValkyrieOutput::Continue(e) => { self.sockets.send_executed(JupyterError::any(format!("Error: Unbounded continue {}", e))).await;}
             }
         }
         Ok(())

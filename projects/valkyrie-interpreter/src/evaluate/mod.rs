@@ -9,6 +9,8 @@ use valkyrie_parser::{ReplRoot, ThisParser};
 use valkyrie_types::{ValkyrieTable, ValkyrieError, ValkyrieResult, ValkyrieValue, SyntaxError, JsonValue, ValkyrieFunction};
 use crate::{ValkyrieEntry, ValkyrieVM};
 use async_recursion::async_recursion;
+use crate::results::ValkyrieOutput;
+use crate::results::ValkyrieOutput::Normal;
 
 mod let_binding;
 
@@ -17,18 +19,18 @@ pub fn parse_repl(text: &str) -> ValkyrieResult<Vec<StatementNode>> {
 }
 
 impl ValkyrieVM {
-    pub async fn execute_statement(&mut self, stmt: StatementNode) -> ValkyrieResult<ValkyrieValue> {
+    pub async fn execute_statement(&mut self, stmt: StatementNode) -> ValkyrieOutput {
         let output = self.execute_stmt(stmt.r#type).await?;
         if stmt.end_semicolon {
-            Ok(ValkyrieValue::Nothing)
+            Normal(ValkyrieValue::Nothing)
         } else {
-            Ok(output)
+            Normal(output)
         }
     }
-    pub(crate) async fn execute_stmt(&mut self, stmt: StatementType) -> ValkyrieResult<ValkyrieValue> {
+    pub(crate) async fn execute_stmt(&mut self, stmt: StatementType) -> ValkyrieOutput {
         match stmt {
             StatementType::Nothing => {
-                Ok(ValkyrieValue::Nothing)
+                Normal(ValkyrieValue::Nothing)
             }
             StatementType::Document(_) => { todo!() }
             StatementType::Namespace(_) => { todo!() }
@@ -46,11 +48,11 @@ impl ValkyrieVM {
             }
         }
     }
-    pub(crate) async fn execute_expr_node(&mut self, expr: ExpressionNode) -> ValkyrieResult<ValkyrieValue> {
-        self.execute_expr(expr.body).await
+    pub(crate) async fn execute_expr_node(&mut self, expr: ExpressionNode) -> ValkyrieOutput {
+        let value = self.execute_expr(expr.body).await?;
     }
     #[async_recursion]
-    pub(crate) async fn execute_expr(&mut self, expr: ExpressionBody) -> ValkyrieResult<ValkyrieValue> {
+    pub(crate) async fn execute_expr(&mut self, expr: ExpressionBody) -> ValkyrieOutput {
         match expr {
             ExpressionBody::Placeholder => Err(ValkyrieError::custom("Placeholder expression should never be executed")),
             ExpressionBody::Prefix(_) => {
