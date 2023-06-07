@@ -32,6 +32,7 @@ impl ValkyrieVM {
             StatementType::Nothing => {
                 Normal(ValkyrieValue::Nothing)
             }
+
             StatementType::Document(_) => { todo!() }
             StatementType::Namespace(_) => { todo!() }
             StatementType::Import(_) => { todo!() }
