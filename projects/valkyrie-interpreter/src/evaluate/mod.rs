@@ -4,13 +4,11 @@ use std::{
     str::FromStr,
     sync::{Arc, Mutex},
 };
-use valkyrie_ast::{CallNode, ExpressionBody, ExpressionNode, IdentifierNode, LetBindNode, ModifierPart, NamePathNode, NumberLiteralNode, PatternType, PrettyPrint, StatementNode, StatementType, StringLiteralNode, SubscriptNode, SubscriptTermNode, TableKind, TableNode};
+use valkyrie_ast::{CallNode, ExpressionBody, ExpressionNode, IdentifierNode, LetBindNode, NamePathNode, NumberLiteralNode, PrettyPrint, StatementBody, StatementNode, StringLiteralNode, SubscriptNode, SubscriptTermNode, TableKind, TableNode};
 use valkyrie_parser::{ReplRoot, ThisParser};
 use valkyrie_types::{ValkyrieTable, ValkyrieError, ValkyrieResult, ValkyrieValue, SyntaxError, JsonValue, ValkyrieFunction};
 use crate::{ValkyrieEntry, ValkyrieVM};
 use async_recursion::async_recursion;
-use crate::results::ValkyrieOutput;
-use crate::results::ValkyrieOutput::Normal;
 
 mod let_binding;
 
@@ -19,41 +17,54 @@ pub fn parse_repl(text: &str) -> ValkyrieResult<Vec<StatementNode>> {
 }
 
 impl ValkyrieVM {
-    pub async fn execute_statement(&mut self, stmt: StatementNode) -> ValkyrieOutput {
+    pub async fn execute_statement(&mut self, stmt: StatementNode) -> ValkyrieResult<ValkyrieValue> {
         let output = self.execute_stmt(stmt.r#type).await?;
         if stmt.end_semicolon {
-            Normal(ValkyrieValue::Nothing)
+            Ok(ValkyrieValue::Nothing)
         } else {
-            Normal(output)
+            Ok(output)
         }
     }
-    pub(crate) async fn execute_stmt(&mut self, stmt: StatementType) -> ValkyrieOutput {
+
+    pub(crate) async fn execute_stmt(&mut self, stmt: StatementBody) -> ValkyrieResult<ValkyrieValue> {
         match stmt {
-            StatementType::Nothing => {
-                Normal(ValkyrieValue::Nothing)
+            StatementBody::Nothing => {
+                Ok(ValkyrieValue::Nothing)
             }
 
-            StatementType::Document(_) => { todo!() }
-            StatementType::Namespace(_) => { todo!() }
-            StatementType::Import(_) => { todo!() }
-            StatementType::Class(_) => { todo!() }
-            StatementType::While(_) => { todo!() }
-            StatementType::For(_) => { todo!() }
-            StatementType::LetBind(v) => {
+            StatementBody::Document(_) => { todo!() }
+            StatementBody::Namespace(_) => { todo!() }
+            StatementBody::Import(_) => { todo!() }
+            StatementBody::Class(_) => { todo!() }
+            StatementBody::While(_) => { todo!() }
+            StatementBody::For(_) => { todo!() }
+            StatementBody::LetBind(v) => {
                 self.execute_let_bind(*v).await
             }
-            StatementType::Function(_) => { todo!() }
-            StatementType::Control(_) => { todo!() }
-            StatementType::Expression(v) => {
+            StatementBody::Function(_) => { todo!() }
+            StatementBody::Control(_) => { todo!() }
+            StatementBody::Expression(v) => {
                 self.execute_expr_node(*v).await
             }
+            StatementBody::Annotation(_) => { todo!() }
+            StatementBody::ClassField(_) => { todo!() }
+            StatementBody::ClassMethod(_) => { todo!() }
+            StatementBody::Union(_) => { todo!() }
+            StatementBody::UnionField(_) => { todo!() }
+            StatementBody::Enumerate(_) => { todo!() }
+            StatementBody::EnumerateField(_) => { todo!() }
+            StatementBody::Flags(_) => { todo!() }
+            StatementBody::Tagged(_) => { todo!() }
+            StatementBody::Variant(_) => { todo!() }
+            StatementBody::Guard(_) => { todo!() }
         }
     }
-    pub(crate) async fn execute_expr_node(&mut self, expr: ExpressionNode) -> ValkyrieOutput {
+    pub(crate) async fn execute_expr_node(&mut self, expr: ExpressionNode) -> ValkyrieResult<ValkyrieValue> {
         let value = self.execute_expr(expr.body).await?;
+        todo!()
     }
     #[async_recursion]
-    pub(crate) async fn execute_expr(&mut self, expr: ExpressionBody) -> ValkyrieOutput {
+    pub(crate) async fn execute_expr(&mut self, expr: ExpressionBody) -> ValkyrieResult<ValkyrieValue> {
         match expr {
             ExpressionBody::Placeholder => Err(ValkyrieError::custom("Placeholder expression should never be executed")),
             ExpressionBody::Prefix(_) => {
@@ -90,6 +101,11 @@ impl ValkyrieVM {
                 todo!()
             }
             ExpressionBody::New(_) => { todo!() }
+            ExpressionBody::Slot(_) => { todo!() }
+            ExpressionBody::Text(_) => { todo!() }
+            ExpressionBody::Resume(_) => { todo!() }
+            ExpressionBody::If(_) => { todo!() }
+            ExpressionBody::Switch(_) => { todo!() }
         }
     }
     pub(crate) async fn execute_subscript(&mut self, call: CallNode<SubscriptNode>) -> ValkyrieResult<ValkyrieValue> {
@@ -159,11 +175,11 @@ impl ValkyrieVM {
     pub(crate) async fn execute_string(&mut self, mut string: StringLiteralNode) -> ValkyrieResult<ValkyrieValue> {
         match &string.unit {
             Some(s) => match s.name.as_str() {
-                "r" => Ok(ValkyrieValue::UTF8String(Arc::new(string.as_raw()))),
-                "re" => self.execute_regex(&string.value),
-                "sh" => self.execute_shell(&string.value).await,
-                "json" => self.execute_json(&string.value),
-                "html" => Ok(ValkyrieValue::Html(Arc::new(string.as_raw()))),
+                "r" => Ok(ValkyrieValue::UTF8String(Arc::new(string.as_raw().text))),
+                "re" => self.execute_regex(&string.raw),
+                "sh" => self.execute_shell(&string.raw).await,
+                "json" => self.execute_json(&string.raw),
+                "html" => Ok(ValkyrieValue::Html(Arc::new(string.as_raw().text))),
                 _ => Err(ValkyrieError::custom(format!("Unknown handler: {}", s.name))),
             },
             // TODO: template string

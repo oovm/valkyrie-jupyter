@@ -1,4 +1,5 @@
 use super::*;
+use valkyrie_ast::ModifiersNode;
 
 #[derive(Clone, Debug)]
 pub struct ValkyrieVariable {
@@ -13,32 +14,33 @@ pub struct ValkyrieVariable {
 }
 
 impl ValkyrieScope {
-    pub fn define_variable<S>(&mut self, name: S, attributes: ModifierPart, value: ValkyrieValue) -> ValkyrieResult<ValkyrieValue> where S: ToString {
+    pub fn define_variable<S>(
+        &mut self,
+        name: S,
+        attributes: &ModifiersNode,
+        value: ValkyrieValue,
+    ) -> ValkyrieResult<ValkyrieValue>
+    where
+        S: ToString,
+    {
         let name = name.to_string();
         let out = value.clone();
         match self.entries.get(name.as_str()) {
-            Some(s) => {
-                match s {
-                    ValkyrieEntry::Variable(s) => {
-                        if s.protected {
-                            Err(ValkyrieError::custom(format!("Variable {} can't rebind", name)))?
-                        }
-                    }
-                    ValkyrieEntry::Function(_) => {
-                        Err(ValkyrieError::custom(format!("Variable {} can't rebind to a function", name)))?
+            Some(s) => match s {
+                ValkyrieEntry::Variable(s) => {
+                    if s.protected {
+                        Err(ValkyrieError::custom(format!("Variable {} can't rebind", name)))?
                     }
                 }
-            }
+                ValkyrieEntry::Function(_) => {
+                    Err(ValkyrieError::custom(format!("Variable {} can't rebind to a function", name)))?
+                }
+            },
             None => {}
         }
         let protected = attributes.contains("final");
         let mutable = attributes.contains("mut");
-        let var = ValkyrieEntry::Variable(Box::new(ValkyrieVariable {
-            protected,
-            mutable,
-            typing: None,
-            value,
-        }));
+        let var = ValkyrieEntry::Variable(Box::new(ValkyrieVariable { protected, mutable, typing: None, value }));
         match self.entries.insert(name.to_string(), var) {
             Some(_) => {}
             None => {}
@@ -58,36 +60,26 @@ impl ValkyrieScope {
                 }
                 todo!()
             }
-            None => {
-                match &self.parent {
-                    Some(s) => {
-                        let mut s = s.lock().unwrap();
-                        s.set_variable(name, value)
-                    }
-                    None => {
-                        Err(ValkyrieError::custom(format!("Undefined symbol: {}", name)))?
-                    }
+            None => match &self.parent {
+                Some(s) => {
+                    let mut s = s.lock().unwrap();
+                    s.set_variable(name, value)
                 }
-            }
+                None => Err(ValkyrieError::custom(format!("Undefined symbol: {}", name)))?,
+            },
         }
     }
 
     pub fn get_variable(&self, name: &str) -> ValkyrieResult<ValkyrieEntry> {
         match self.entries.get(name) {
-            Some(s) => {
-                Ok(s.clone())
-            }
-            None => {
-                match &self.parent {
-                    Some(s) => {
-                        let s = s.lock().unwrap();
-                        s.get_variable(name)
-                    }
-                    None => {
-                        Err(ValkyrieError::custom(format!("Undefined symbol: {}", name)))?
-                    }
+            Some(s) => Ok(s.clone()),
+            None => match &self.parent {
+                Some(s) => {
+                    let s = s.lock().unwrap();
+                    s.get_variable(name)
                 }
-            }
+                None => Err(ValkyrieError::custom(format!("Undefined symbol: {}", name)))?,
+            },
         }
     }
 }

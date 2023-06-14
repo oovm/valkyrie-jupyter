@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex};
-use valkyrie_ast::ModifierPart;
+
 use valkyrie_types::{ValkyrieFunction, ValkyrieValue};
 use crate::{ValkyrieError, ValkyrieResult, ValkyrieVariable};
 
