@@ -7,23 +7,23 @@ use clap::{Parser, Subcommand};
 
 use serde_json::Value;
 use std::path::PathBuf;
-use valkyrie_ast::{StatementNode};
+use valkyrie_ast::StatementNode;
 use valkyrie_parser::ThisParser;
 
 mod evaluate;
-mod traits;
-mod scope;
 mod results;
+mod scope;
+mod traits;
 
-pub use valkyrie_types::{ValkyrieValue};
-pub use valkyrie_types::{ValkyrieError, ValkyrieResult};
-pub use crate::evaluate::parse_repl;
-pub use crate::scope::{ValkyrieEntry, ValkyrieScope, variable::ValkyrieVariable, function::ValkyrieFunction};
+pub use crate::{
+    evaluate::parse_repl,
+    scope::{function::ValkyrieFunction, variable::ValkyrieVariable, ValkyrieEntry, ValkyrieScope},
+};
+pub use valkyrie_types::{ValkyrieError, ValkyrieResult, ValkyrieValue};
 
 pub struct ValkyrieVM {
     top_scope: ValkyrieScope,
 }
-
 
 impl Default for ValkyrieVM {
     fn default() -> Self {

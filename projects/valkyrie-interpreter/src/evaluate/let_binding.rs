@@ -1,7 +1,7 @@
 use super::*;
 use valkyrie_ast::PatternExpressionNode;
 
-impl ValkyrieVM {
+impl ValkyrieScope {
     pub(crate) async fn execute_let_bind(&mut self, bind: LetBindNode) -> ValkyrieResult<ValkyrieValue> {
         match bind.pattern {
             PatternExpressionNode::Tuple(t) => match t.as_slice() {
@@ -9,9 +9,9 @@ impl ValkyrieVM {
                 [v] => {
                     let rhs = match bind.body {
                         None => ValkyrieValue::Nothing,
-                        Some(v) => self.execute_expr_node(v).await?,
+                        Some(v) => self.execute_term_expression(v).await?,
                     };
-                    self.top_scope.define_variable(&v.key.name, &v.modifiers, rhs)
+                    self.define_variable(&v.key.name, &v.modifiers, rhs)
                 }
                 _ => {
                     return Err(ValkyrieError::custom("Tuple patterns are not yet supported"));

@@ -5,24 +5,21 @@
 #![doc(html_logo_url = "https://raw.githubusercontent.com/oovm/shape-rs/dev/projects/images/Trapezohedron.svg")]
 #![doc(html_favicon_url = "https://raw.githubusercontent.com/oovm/shape-rs/dev/projects/images/Trapezohedron.svg")]
 
-
 use std::fmt::{Debug, Formatter};
 
-
 use std::path::PathBuf;
-use std::str::FromStr;
-use jupyter::{InstallAction, JupyterResult, OpenAction, StartAction, UninstallAction};
-use crate::executor::ValkyrieExecutor;
-use clap::Parser;
-use clap::Subcommand;
-use url::Url;
-use std::io::Write;
 
+use crate::executor::ValkyrieExecutor;
+use clap::{Parser, Subcommand};
+use jupyter::{InstallAction, JupyterResult, OpenAction, StartAction, UninstallAction};
+use std::io::Write;
+use url::Url;
+
+mod config;
 mod executor;
 mod protocol;
-mod config;
 
-pub use crate::protocol::{display::{ DisplayKeywords, DisplayNumber, DisplayText}};
+pub use crate::protocol::display::{DisplayKeywords, DisplayNumber, DisplayText};
 
 ///
 #[derive(Debug, Parser)]
@@ -71,14 +68,12 @@ fn main() -> JupyterResult<()> {
         let mut host_stderr = std::io::stderr().lock();
         match info.location() {
             None => {}
-            Some(s) => {
-                match Url::from_file_path(s.file()) {
-                    Ok(o) => {
-                        writeln!(host_stderr, "{}:{}:{}", o, s.line(), s.column()).ok();
-                    }
-                    Err(_) => {}
+            Some(s) => match Url::from_file_path(s.file()) {
+                Ok(o) => {
+                    writeln!(host_stderr, "{}:{}:{}", o, s.line(), s.column()).ok();
                 }
-            }
+                Err(_) => {}
+            },
         }
     }));
     tracing_subscriber::fmt::init();

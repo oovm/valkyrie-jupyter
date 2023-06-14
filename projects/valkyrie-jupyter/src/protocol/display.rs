@@ -26,6 +26,7 @@ impl DisplayKeywords {
     }
 }
 
+/// A trait for types that can be displayed in the Jupyter notebook.
 #[derive(Debug)]
 pub struct DisplayText {
     text: String,
@@ -41,9 +42,10 @@ impl Executed for DisplayText {
     }
 }
 
+/// A trait for types that can be displayed in the Jupyter notebook.
 #[derive(Debug)]
 pub struct DisplayNumber {
-    r#type: String,
+    hint: String,
     text: String,
 }
 
@@ -62,14 +64,15 @@ impl Executed for DisplayNumber {
 }
 
 impl DisplayNumber {
+    /// Create a new display number.
     pub fn new<S: ToString>(text: S) -> Self {
-        Self { r#type: String::new(), text: text.to_string() }
+        Self { hint: String::new(), text: text.to_string() }
     }
-    pub fn typed<T, S>(text: T, r#type: S) -> Self
-        where
-            T: ToString,
-            S: ToString,
+    pub fn hinted<T, S>(text: T, r#type: S) -> Self
+    where
+        T: ToString,
+        S: ToString,
     {
-        Self { r#type: r#type.to_string(), text: text.to_string() }
+        Self { hint: r#type.to_string(), text: text.to_string() }
     }
 }

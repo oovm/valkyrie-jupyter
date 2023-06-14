@@ -5,7 +5,7 @@ authors = ["Aster <192607617@qq.com>"]
 description = "Jupyter Kernel for Valkyrie Language"
 repository = "https://github.com/nyar-vm/valkyrie-jupyter"
 documentation = "https://docs.rs/jupyter-valkyrie"
-readme = "Readme.md"
+readme = "readme.md"
 license = "MPL-2.0"
 edition = "2021"
 exclude = ["package.json", "tests/**"]
@@ -33,6 +33,7 @@ version = "0.0.*"
 path = "../valkyrie-interpreter"
 
 [dev-dependencies]
+tokio = "1.28.1"
 
 [features]
 default = []
