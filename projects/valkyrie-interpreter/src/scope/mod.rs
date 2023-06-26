@@ -1,11 +1,13 @@
-use std::collections::BTreeMap;
-use std::sync::{Arc, Mutex};
+use std::{
+    collections::BTreeMap,
+    sync::{Arc, Mutex},
+};
 
-use valkyrie_types::{ValkyrieFunction, ValkyrieValue};
 use crate::{ValkyrieError, ValkyrieResult, ValkyrieVariable};
+use valkyrie_types::{ValkyrieFunction, ValkyrieValue};
 
-pub mod variable;
 pub mod function;
+pub mod variable;
 
 #[derive(Clone, Debug)]
 pub struct ValkyrieScope {
@@ -23,13 +25,13 @@ impl ValkyrieScope {
     pub fn is_top(&self) -> bool {
         self.parent.is_none()
     }
+    pub fn fork(&self) -> Self {
+        Self { parent: Some(Arc::new(Mutex::new(self.clone()))), entries: Default::default() }
+    }
 }
 
 impl Default for ValkyrieScope {
     fn default() -> Self {
-        Self {
-            parent: None,
-            entries: Default::default(),
-        }
+        Self { parent: None, entries: Default::default() }
     }
 }

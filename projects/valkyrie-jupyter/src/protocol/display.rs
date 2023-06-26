@@ -21,6 +21,7 @@ impl Executed for DisplayKeywords {
 }
 
 impl DisplayKeywords {
+    /// Create a new display keywords.
     pub fn new<S: ToString>(text: S) -> Self {
         Self { text: text.to_string() }
     }
@@ -59,7 +60,11 @@ impl Executed for DisplayNumber {
             JupyterTheme::Light => "#986801",
             JupyterTheme::Dark => "#986801",
         };
-        Value::String(format!(r#"<span style="color: {color}">{}</span>"#, self.text))
+        let mut buffer = format!(r#"<span style="color: {color}">{}</span>"#, self.text);
+        if !self.hint.is_empty() {
+            buffer.push_str(&format!(r#"<span style="color: {color}">{}</span>"#, self.hint));
+        }
+        Value::String(buffer)
     }
 }
 
@@ -68,6 +73,7 @@ impl DisplayNumber {
     pub fn new<S: ToString>(text: S) -> Self {
         Self { hint: String::new(), text: text.to_string() }
     }
+    /// Create a new display number with a hint.
     pub fn hinted<T, S>(text: T, r#type: S) -> Self
     where
         T: ToString,

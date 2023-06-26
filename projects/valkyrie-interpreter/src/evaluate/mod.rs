@@ -7,9 +7,8 @@ use std::{
     sync::{Arc, Mutex},
 };
 use valkyrie_ast::{
-    CallNode, ExpressionBody, ExpressionNode, IdentifierNode, LetBindNode, NamePathNode, NumberLiteralNode, PrettyPrint,
-    ProgramRoot, StatementBody, StatementNode, StringLiteralNode, SubscriptNode, SubscriptTermNode, SwitchStatement, TableKind,
-    TableNode,
+    CallNode, ExpressionNode, IdentifierNode, LetBindNode, NamePathNode, NumberLiteralNode, PrettyPrint, ProgramRoot,
+    StatementNode, StatementType, StringLiteralNode, SubscriptNode, SubscriptTermNode, SwitchStatement, TableKind, TableNode,
 };
 use valkyrie_parser::{ReplRoot, ThisParser};
 use valkyrie_types::{JsonValue, SyntaxError, ValkyrieError, ValkyrieFunction, ValkyrieTable, ValkyrieValue};

@@ -8,7 +8,7 @@ use valkyrie_interpreter::ValkyrieVM;
 const SWITCH: &str = r#"
 switch {
     when true:
-        1,
+        1 + 1,
     else:
         2,
 }
@@ -21,7 +21,7 @@ switch {
 "#;
 
 #[tokio::test]
-async fn running() {
+async fn running_switch() {
     let mut vm = ValkyrieVM::default();
     let values = vm.execute_script(SWITCH).await;
     println!("{:#?}", values);

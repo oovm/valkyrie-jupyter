@@ -1,12 +1,13 @@
 use super::*;
 
+/// A function.
 pub struct ValkyrieFunction {
     /// Weathers the name can be rebinding.
-    protected: bool,
+    pub protected: bool,
     /// Weathers the value can change.
-    mutable: bool,
+    pub mutable: bool,
     /// A mutable value can't be changed to a value with a different type.
-    typing: Option<String>,
+    pub typing: Option<String>,
     /// The stored value.
-    value: ValkyrieValue,
+    pub value: ValkyrieValue,
 }

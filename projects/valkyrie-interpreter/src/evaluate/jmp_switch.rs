@@ -14,9 +14,11 @@ impl ValkyrieScope {
             if !is_true {
                 continue;
             }
+            let mut child = self.fork();
             for stmt in branch.statements.terms {
-                last = self.execute_statement(stmt).await?;
+                last = child.execute_statement(stmt).await?;
             }
+            break;
         }
         // no condition, no statements, return unit
         Ok(last)

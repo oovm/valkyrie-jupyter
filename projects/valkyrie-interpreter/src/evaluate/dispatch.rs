@@ -1,70 +1,74 @@
 use super::*;
+use valkyrie_ast::ExpressionType;
 
 impl ValkyrieScope {
     pub async fn execute_statement(&mut self, stmt: StatementNode) -> ValkyrieResult<ValkyrieValue> {
         let output = self.execute_stmt(stmt.r#type).await?;
         if stmt.end_semicolon { Ok(ValkyrieValue::Nothing) } else { Ok(output) }
     }
-    pub(crate) async fn execute_stmt(&mut self, stmt: StatementBody) -> ValkyrieResult<ValkyrieValue> {
+    pub(crate) async fn execute_stmt(&mut self, stmt: StatementType) -> ValkyrieResult<ValkyrieValue> {
         match stmt {
-            StatementBody::Nothing => Ok(ValkyrieValue::Nothing),
-            StatementBody::Document(_) => {
+            StatementType::Nothing => Ok(ValkyrieValue::Nothing),
+            StatementType::Document(_) => {
                 todo!()
             }
-            StatementBody::Namespace(_) => {
+            StatementType::Namespace(_) => {
                 todo!()
             }
-            StatementBody::Import(_) => {
+            StatementType::Import(_) => {
                 todo!()
             }
-            StatementBody::Class(_) => {
+            StatementType::Class(_) => {
                 todo!()
             }
-            StatementBody::While(_) => {
+            StatementType::While(_) => {
                 todo!()
             }
-            StatementBody::For(_) => {
+            StatementType::For(_) => {
                 todo!()
             }
-            StatementBody::LetBind(v) => self.execute_let_bind(*v).await,
-            StatementBody::Function(_) => {
+            StatementType::LetBind(v) => self.execute_let_bind(*v).await,
+            StatementType::Function(_) => {
                 todo!()
             }
-            StatementBody::Control(_) => {
+            StatementType::Control(_) => {
                 todo!()
             }
-            StatementBody::Expression(v) => self.execute_term_expression(*v).await,
-            StatementBody::Annotation(_) => {
+            StatementType::Expression(v) => self.execute_term_expression(*v).await,
+            StatementType::Annotation(_) => {
                 todo!()
             }
-            StatementBody::ClassField(_) => {
+            StatementType::ClassField(_) => {
                 todo!()
             }
-            StatementBody::ClassMethod(_) => {
+            StatementType::ClassMethod(_) => {
                 todo!()
             }
-            StatementBody::Union(_) => {
+            StatementType::Union(_) => {
                 todo!()
             }
-            StatementBody::UnionField(_) => {
+            StatementType::UnionField(_) => {
                 todo!()
             }
-            StatementBody::Enumerate(_) => {
+            StatementType::Enumerate(_) => {
                 todo!()
             }
-            StatementBody::EnumerateField(_) => {
+            StatementType::EnumerateField(_) => {
                 todo!()
             }
-            StatementBody::Flags(_) => {
+            StatementType::Flags(_) => {
                 todo!()
             }
-            StatementBody::Tagged(_) => {
+            StatementType::Tagged(_) => {
                 todo!()
             }
-            StatementBody::Variant(_) => {
+            StatementType::Variant(_) => {
                 todo!()
             }
-            StatementBody::Guard(_) => {
+            StatementType::Guard(_) => {
+                todo!()
+            }
+            StatementType::GuardLet(_) => {
                 todo!()
             }
         }
@@ -74,50 +78,53 @@ impl ValkyrieScope {
         Ok(value)
     }
     #[async_recursion]
-    pub(crate) async fn execute_expr(&mut self, expr: ExpressionBody) -> ValkyrieResult<ValkyrieValue> {
+    pub(crate) async fn execute_expr(&mut self, expr: ExpressionType) -> ValkyrieResult<ValkyrieValue> {
         match expr {
-            ExpressionBody::Placeholder => Err(ValkyrieError::custom("Placeholder expression should never be executed")),
-            ExpressionBody::Prefix(_) => {
+            ExpressionType::Placeholder => Err(ValkyrieError::custom("Placeholder expression should never be executed")),
+            ExpressionType::Prefix(_) => {
                 todo!()
             }
-            ExpressionBody::Binary(_) => {
+            ExpressionType::Binary(_) => {
                 todo!()
             }
-            ExpressionBody::Suffix(_) => {
+            ExpressionType::Suffix(_) => {
                 todo!()
             }
-            ExpressionBody::Number(v) => self.execute_number(*v).await,
-            ExpressionBody::Symbol(v) => self.execute_symbol(*v).await,
-            ExpressionBody::String(v) => self.execute_string(*v).await,
-            ExpressionBody::Table(v) => self.execute_table(*v).await,
-            ExpressionBody::Apply(_) => {
+            ExpressionType::Number(v) => self.execute_number(*v).await,
+            ExpressionType::Symbol(v) => self.execute_symbol(*v).await,
+            ExpressionType::String(v) => self.execute_string(*v).await,
+            ExpressionType::Table(v) => self.execute_table(*v).await,
+            ExpressionType::Apply(_) => {
                 todo!()
             }
-            ExpressionBody::ApplyDot(_) => {
+            ExpressionType::ApplyDot(_) => {
                 todo!()
             }
-            ExpressionBody::LambdaCall(_) => {
+            ExpressionType::LambdaCall(_) => {
                 todo!()
             }
-            ExpressionBody::LambdaDot(_) => {
+            ExpressionType::LambdaDot(_) => {
                 todo!()
             }
-            ExpressionBody::Subscript(v) => self.execute_subscript(*v).await,
-            ExpressionBody::GenericCall(_) => {
+            ExpressionType::Subscript(v) => self.execute_subscript(*v).await,
+            ExpressionType::GenericCall(_) => {
                 todo!()
             }
-            ExpressionBody::New(_) => {
+            ExpressionType::New(_) => {
                 todo!()
             }
-            ExpressionBody::Slot(_) => {
+            ExpressionType::Slot(_) => {
                 todo!()
             }
-            ExpressionBody::Text(v) => Ok(ValkyrieValue::UTF8String(Arc::new(v.text))),
-            ExpressionBody::Resume(_) => {
+            ExpressionType::Text(v) => Ok(ValkyrieValue::UTF8String(Arc::new(v.text))),
+            ExpressionType::Resume(_) => {
                 todo!()
             }
-            ExpressionBody::If(v) => self.evaluate_switch(v.as_switch()).await,
-            ExpressionBody::Switch(v) => self.evaluate_switch(*v).await,
+            ExpressionType::If(v) => self.evaluate_switch(v.as_switch()).await,
+            ExpressionType::Switch(v) => self.evaluate_switch(*v).await,
+            ExpressionType::IfLet(_) => {
+                todo!()
+            }
         }
     }
 }
