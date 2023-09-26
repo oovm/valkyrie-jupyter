@@ -1,5 +1,5 @@
 use super::*;
-
+use jupyter::value_type::{JupyterContext, JupyterTheme};
 /// A trait for types that can be displayed in the Jupyter notebook.
 #[derive(Debug)]
 pub struct DisplayKeywords {
@@ -11,8 +11,8 @@ impl Executed for DisplayKeywords {
         "text/html".to_string()
     }
 
-    fn as_json(&self, theme: JupyterTheme) -> Value {
-        let color = match theme {
+    fn as_json(&self, context: &JupyterContext) -> Value {
+        let color = match context.theme {
             JupyterTheme::Light => "#A626A4",
             JupyterTheme::Dark => "#A626A4",
         };
@@ -38,7 +38,7 @@ impl Executed for DisplayText {
         "text/plaintext".to_string()
     }
 
-    fn as_json(&self, _: JupyterTheme) -> Value {
+    fn as_json(&self, _: &JupyterContext) -> Value {
         Value::String(self.text.clone())
     }
 }
@@ -55,8 +55,8 @@ impl Executed for DisplayNumber {
         "text/html".to_string()
     }
 
-    fn as_json(&self, theme: JupyterTheme) -> Value {
-        let color = match theme {
+    fn as_json(&self, context: &JupyterContext) -> Value {
+        let color = match context.theme {
             JupyterTheme::Light => "#986801",
             JupyterTheme::Dark => "#986801",
         };

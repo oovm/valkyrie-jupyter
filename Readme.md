@@ -7,3 +7,15 @@ Rust Template Project
 ## Playground
 
 [playground/Main.ipynb](https://github.com/nyar-vm/valkyrie-jupyter/blob/dev/projects/playground/Main.ipynb)
+
+
+## Development
+
+```shell
+cd projects/valkyrie-jupyter && cargo run -- install
+cd projects/playground && jupyter-lab
+```
+
+```shell
+cd projects/valkyrie-jupyter; cargo run -- install; cd ../playground; jupyter-lab
+```

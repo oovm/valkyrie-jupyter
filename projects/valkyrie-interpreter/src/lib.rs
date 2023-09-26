@@ -8,17 +8,15 @@ use clap::{Parser, Subcommand};
 use serde_json::Value;
 use std::path::PathBuf;
 use valkyrie_ast::StatementNode;
-use valkyrie_parser::ThisParser;
+// use valkyrie_parser::ThisParser;
+use valkyrie_antlr;
 
 mod evaluate;
 mod results;
 mod scope;
 mod traits;
 
-pub use crate::{
-    evaluate::parse_repl,
-    scope::{function::ValkyrieFunction, variable::ValkyrieVariable, ValkyrieEntry, ValkyrieScope},
-};
+pub use crate::scope::{function::ValkyrieFunction, variable::ValkyrieVariable, ValkyrieEntry, ValkyrieScope};
 pub use valkyrie_types::{ValkyrieError, ValkyrieResult, ValkyrieValue};
 
 pub struct ValkyrieVM {

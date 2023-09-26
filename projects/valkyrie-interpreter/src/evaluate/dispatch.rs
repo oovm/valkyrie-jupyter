@@ -3,72 +3,65 @@ use valkyrie_ast::ExpressionType;
 
 impl ValkyrieScope {
     pub async fn execute_statement(&mut self, stmt: StatementNode) -> ValkyrieResult<ValkyrieValue> {
-        let output = self.execute_stmt(stmt.r#type).await?;
-        if stmt.end_semicolon { Ok(ValkyrieValue::Nothing) } else { Ok(output) }
-    }
-    pub(crate) async fn execute_stmt(&mut self, stmt: StatementType) -> ValkyrieResult<ValkyrieValue> {
         match stmt {
-            StatementType::Nothing => Ok(ValkyrieValue::Nothing),
-            StatementType::Document(_) => {
+            StatementNode::Nothing => Ok(ValkyrieValue::Nothing),
+            StatementNode::Document(_) => {
                 todo!()
             }
-            StatementType::Namespace(_) => {
+            StatementNode::Namespace(_) => {
                 todo!()
             }
-            StatementType::Import(_) => {
+            StatementNode::Import(_) => {
                 todo!()
             }
-            StatementType::Class(_) => {
+            StatementNode::Class(_) => {
                 todo!()
             }
-            StatementType::While(_) => {
+            StatementNode::While(_) => {
                 todo!()
             }
-            StatementType::For(_) => {
+            StatementNode::For(_) => {
                 todo!()
             }
-            StatementType::LetBind(v) => self.execute_let_bind(*v).await,
-            StatementType::Function(_) => {
+            StatementNode::LetBind(v) => self.execute_let_bind(*v).await,
+            StatementNode::Function(_) => {
                 todo!()
             }
-            StatementType::Control(_) => {
+            StatementNode::Control(_) => {
                 todo!()
             }
-            StatementType::Expression(v) => self.execute_term_expression(*v).await,
-            StatementType::Annotation(_) => {
+            StatementNode::Expression(v) => self.execute_term_expression(*v).await,
+            StatementNode::Annotation(_) => {
                 todo!()
             }
-            StatementType::ClassField(_) => {
+            StatementNode::Union(_) => {
                 todo!()
             }
-            StatementType::ClassMethod(_) => {
+            StatementNode::UnionField(_) => {
                 todo!()
             }
-            StatementType::Union(_) => {
+            StatementNode::Enumerate(_) => {
                 todo!()
             }
-            StatementType::UnionField(_) => {
+            StatementNode::EnumerateField(_) => {
                 todo!()
             }
-            StatementType::Enumerate(_) => {
+            StatementNode::Flags(_) => {
                 todo!()
             }
-            StatementType::EnumerateField(_) => {
+            StatementNode::Tagged(_) => {
                 todo!()
             }
-            StatementType::Flags(_) => {
+            StatementNode::Variant(_) => {
                 todo!()
             }
-            StatementType::Tagged(_) => {
+            StatementNode::Guard(_) => {
                 todo!()
             }
-            StatementType::Variant(_) => {
+            StatementNode::Trait(_) => {
                 todo!()
             }
-            StatementType::Guard(_) => {
-                todo!()
-            }
-            StatementType::GuardLet(_) => {
+            StatementNode::Extends(_) => {
                 todo!()
             }
         }
@@ -81,6 +74,7 @@ impl ValkyrieScope {
     pub(crate) async fn execute_expr(&mut self, expr: ExpressionType) -> ValkyrieResult<ValkyrieValue> {
         match expr {
             ExpressionType::Placeholder => Err(ValkyrieError::custom("Placeholder expression should never be executed")),
+
             ExpressionType::Prefix(_) => {
                 todo!()
             }
@@ -90,10 +84,7 @@ impl ValkyrieScope {
             ExpressionType::Suffix(_) => {
                 todo!()
             }
-            ExpressionType::Number(v) => self.execute_number(*v).await,
-            ExpressionType::Symbol(v) => self.execute_symbol(*v).await,
-            ExpressionType::String(v) => self.execute_string(*v).await,
-            ExpressionType::Table(v) => self.execute_table(*v).await,
+
             ExpressionType::Apply(_) => {
                 todo!()
             }
@@ -116,13 +107,35 @@ impl ValkyrieScope {
             ExpressionType::Slot(_) => {
                 todo!()
             }
-            ExpressionType::Text(v) => Ok(ValkyrieValue::UTF8String(Arc::new(v.text))),
+            ExpressionType::Text(v) => Ok(ValkyrieValue::UTF8String(Gc::new(v.text))),
             ExpressionType::Resume(_) => {
                 todo!()
             }
             ExpressionType::If(v) => self.evaluate_switch(v.as_switch()).await,
             ExpressionType::Switch(v) => self.evaluate_switch(*v).await,
             ExpressionType::IfLet(_) => {
+                todo!()
+            }
+            ExpressionType::Null(v) => {
+                if v.nil {
+                    Ok(ValkyrieValue::Null)
+                }
+                else {
+                    Ok(ValkyrieValue::Null)
+                }
+            }
+            ExpressionType::Boolean(v) => Ok(ValkyrieValue::Boolean(v.value)),
+            ExpressionType::Number(v) => self.execute_number(*v).await,
+            ExpressionType::Symbol(v) => self.execute_symbol(*v).await,
+            ExpressionType::String(v) => self.execute_string(*v).await,
+            ExpressionType::Table(v) => self.execute_table(*v).await,
+            ExpressionType::Formatted(_) => {
+                todo!()
+            }
+            ExpressionType::Try(_) => {
+                todo!()
+            }
+            ExpressionType::MatchDot(_) => {
                 todo!()
             }
         }
