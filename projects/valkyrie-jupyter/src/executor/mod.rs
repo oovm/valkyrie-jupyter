@@ -1,5 +1,7 @@
 use crate::{config::ValkyrieConfig, DisplayKeywords, DisplayNumber};
-use jupyter::{value_type::HtmlText, ExecutionRequest, JupyterError, JupyterKernelSockets, JupyterMessage};
+use jupyter::{
+    to_value, value_type::HtmlText, ExecutionRequest, JupyterError, JupyterKernelSockets, JupyterMessage, Serialize, Value,
+};
 use valkyrie_interpreter::{ValkyrieResult, ValkyrieVM, ValkyrieValue};
 
 pub struct ValkyrieExecutor {
@@ -16,7 +18,6 @@ impl Default for ValkyrieExecutor {
 
 impl ValkyrieExecutor {
     pub(crate) async fn repl_parse_and_run(&mut self, code: &ExecutionRequest) -> ValkyrieResult<()> {
-        let tasks = ValkyrieVM::parse_statements(&code.code)?;
         for task in ValkyrieVM::parse_statements(&code.code)? {
             match self.vm.execute_statement(task).await {
                 Ok(v) => self.send_value(v, &code.header).await,
@@ -51,15 +52,20 @@ impl ValkyrieExecutor {
             ValkyrieValue::Image(_) => {
                 todo!()
             }
-            ValkyrieValue::Table(_) => {
-                todo!()
-            }
             ValkyrieValue::Html(v) => {
                 self.sockets.send_executed(HtmlText::new(v), parent).await;
             }
             ValkyrieValue::Uninitialized => {
                 todo!()
             }
+            ValkyrieValue::List(v) => match to_value(v) {
+                Ok(o) => self.sockets.send_executed(o, parent).await,
+                Err(_) => {}
+            },
+            ValkyrieValue::Dict(v) => match to_value(v) {
+                Ok(o) => self.sockets.send_executed(o, parent).await,
+                Err(_) => {}
+            },
         }
     }
 }

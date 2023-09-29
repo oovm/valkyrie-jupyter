@@ -1,19 +1,12 @@
 use crate::{ValkyrieEntry, ValkyrieResult, ValkyrieScope, ValkyrieVM};
 use async_recursion::async_recursion;
-use serde_json::Value;
-use std::{
-    collections::BTreeMap,
-    str::FromStr,
-    sync::{Arc, Mutex},
-};
+use std::str::FromStr;
 use valkyrie_antlr::ValkyrieProgramParser;
 use valkyrie_ast::{
-    CallNode, ExpressionNode, IdentifierNode, LetBindNode, LetPattern, NamePathNode, NumberLiteralNode, ProgramRoot,
-    StatementNode, StringLiteralNode, SubscriptNode, SubscriptTermNode, SwitchStatement, TableKind, TableNode,
+    ArrayNode, ArrayTermNode, CallNode, ExpressionNode, ExpressionType, LetBindNode, LetPattern, NamePathNode,
+    NumberLiteralNode, StatementNode, StringLiteralNode, SubscriptCallNode, SwitchStatement, TupleNode,
 };
-use valkyrie_types::{
-    Gc, JsonValue, SyntaxError, ValkyrieError, ValkyrieFunction, ValkyrieNumber, ValkyrieTable, ValkyrieValue,
-};
+use valkyrie_types::{Gc, Num, SyntaxError, ValkyrieError, ValkyrieNumber, ValkyrieValue};
 
 mod dispatch;
 mod jmp_switch;
@@ -40,14 +33,27 @@ impl ValkyrieVM {
 }
 
 impl ValkyrieScope {
-    pub(crate) async fn execute_subscript(&mut self, call: CallNode<SubscriptNode>) -> ValkyrieResult<ValkyrieValue> {
+    pub(crate) async fn execute_subscript(&mut self, call: SubscriptCallNode) -> ValkyrieResult<ValkyrieValue> {
         let base = self.execute_expr(call.base).await?;
-        let mut subs = vec![];
-        for term in call.rest.terms {
+        // let mut subs = vec![];
+        for term in call.terms {
             match term {
-                SubscriptTermNode::Index(node) => subs.push(self.execute_term_expression(node).await?),
-                SubscriptTermNode::Slice(node) => {
-                    todo!()
+                ArrayTermNode::Index { index } => {
+                    let _ = self.execute_expr(index).await?;
+                }
+                ArrayTermNode::Range { head, tail, step } => {
+                    let _ = match head {
+                        Some(s) => self.execute_expr(s).await?,
+                        None => ValkyrieValue::from(1),
+                    };
+                    let _ = match tail {
+                        Some(s) => self.execute_expr(s).await?,
+                        None => ValkyrieValue::from(-1),
+                    };
+                    let _ = match step {
+                        Some(s) => self.execute_expr(s).await?,
+                        None => ValkyrieValue::from(1),
+                    };
                 }
             }
         }
@@ -61,7 +67,7 @@ impl ValkyrieScope {
                 "f64" => ValkyrieValue::parse_decimal(&number.value, 10),
                 _ => Err(ValkyrieError::custom(format!("Unknown unit: {}", s.name))),
             },
-            None => Ok(ValkyrieValue::Number(ValkyrieNumber::from_str(&number.value)?)),
+            None => Ok(ValkyrieValue::Number(ValkyrieNumber::from_str_radix(&number.value, 10)?)),
         }
     }
     pub(crate) async fn execute_symbol(&mut self, symbol: NamePathNode) -> ValkyrieResult<ValkyrieValue> {
@@ -83,20 +89,12 @@ impl ValkyrieScope {
             _ => Err(ValkyrieError::custom(format!("Unknown symbol: {:?}", symbol.names))),
         }
     }
-    pub(crate) async fn execute_table(&mut self, table: TableNode) -> ValkyrieResult<ValkyrieValue> {
-        match table.kind {
-            TableKind::Tuple => {
-                todo!()
-            }
-            TableKind::OffsetTable => {
-                todo!()
-            }
-            TableKind::OrdinalTable => {
-                todo!()
-            }
-        }
+    pub(crate) async fn execute_tuple(&mut self, table: TupleNode) -> ValkyrieResult<ValkyrieValue> {
+        Err(ValkyrieError::custom(format!("Unknown execute_tuple: {:?}", table)))
     }
-
+    pub(crate) async fn execute_array(&mut self, table: ArrayNode) -> ValkyrieResult<ValkyrieValue> {
+        Err(ValkyrieError::custom(format!("Unknown execute_array: {:?}", table)))
+    }
     pub(crate) async fn execute_string(&mut self, mut string: StringLiteralNode) -> ValkyrieResult<ValkyrieValue> {
         match &string.handler {
             Some(s) => match s.name.as_str() {
@@ -116,8 +114,7 @@ impl ValkyrieScope {
         Ok(ValkyrieValue::UTF8String(Gc::new(value)))
     }
     fn execute_json(&mut self, string: &str) -> ValkyrieResult<ValkyrieValue> {
-        let value = json5::from_str(string)?;
-        Ok(ValkyrieValue::UTF8String(Gc::new(value)))
+        Ok(json5::from_str(string)?)
     }
     async fn execute_shell(&self, shell: &str) -> ValkyrieResult<ValkyrieValue> {
         Ok(ValkyrieValue::UTF8String(Gc::new(shell.to_string())))

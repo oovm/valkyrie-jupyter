@@ -5,24 +5,27 @@ fn ready() {
 
 use valkyrie_interpreter::ValkyrieVM;
 
-const SWITCH: &str = r#"
-switch {
-    when true:
-        1 + 1,
-    else:
-        2,
-}
-switch {
-    when false:
-        1,
-    else:
-        2,
-}
+const WRONG: &str = r#"namespace test;
+// empty table
+()⁏
+// list like table
+(1, 2, 3)⁏
+// dict like table
+(
+    a: 1, 
+    b: 2,
+)⁏
+// mix style table
+(
+    1, 2, 3,
+    a: 1,
+    b: 2,
+)⁏
 "#;
 
 #[tokio::test]
-async fn running_switch() {
+async fn debug_wrong() {
     let mut vm = ValkyrieVM::default();
-    let values = vm.execute_script(SWITCH).await;
+    let values = vm.execute_script(WRONG).await;
     println!("{:#?}", values);
 }

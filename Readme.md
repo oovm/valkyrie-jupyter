@@ -11,11 +11,15 @@ Rust Template Project
 
 ## Development
 
+- unix
+
 ```shell
 cd projects/valkyrie-jupyter && cargo run -- install
 cd projects/playground && jupyter-lab
 ```
 
+- windows
+
 ```shell
-cd projects/valkyrie-jupyter; cargo run -- install; cd ../playground; jupyter-lab
+cd projects/valkyrie-jupyter; cargo run -- install; cd ../playground; jupyter-lab;
 ```

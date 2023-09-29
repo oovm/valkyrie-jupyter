@@ -8,9 +8,7 @@ impl ValkyrieScope {
             StatementNode::Document(_) => {
                 todo!()
             }
-            StatementNode::Namespace(_) => {
-                todo!()
-            }
+            StatementNode::Namespace(_) => Ok(ValkyrieValue::Null),
             StatementNode::Import(_) => {
                 todo!()
             }
@@ -84,20 +82,9 @@ impl ValkyrieScope {
             ExpressionType::Suffix(_) => {
                 todo!()
             }
-
-            ExpressionType::Apply(_) => {
-                todo!()
-            }
-            ExpressionType::ApplyDot(_) => {
-                todo!()
-            }
             ExpressionType::LambdaCall(_) => {
                 todo!()
             }
-            ExpressionType::LambdaDot(_) => {
-                todo!()
-            }
-            ExpressionType::Subscript(v) => self.execute_subscript(*v).await,
             ExpressionType::GenericCall(_) => {
                 todo!()
             }
@@ -128,7 +115,6 @@ impl ValkyrieScope {
             ExpressionType::Number(v) => self.execute_number(*v).await,
             ExpressionType::Symbol(v) => self.execute_symbol(*v).await,
             ExpressionType::String(v) => self.execute_string(*v).await,
-            ExpressionType::Table(v) => self.execute_table(*v).await,
             ExpressionType::Formatted(_) => {
                 todo!()
             }
@@ -136,6 +122,15 @@ impl ValkyrieScope {
                 todo!()
             }
             ExpressionType::MatchDot(_) => {
+                todo!()
+            }
+            ExpressionType::Tuple(v) => self.execute_tuple(*v).await,
+            ExpressionType::Array(v) => self.execute_array(*v).await,
+            ExpressionType::ApplyCall(_) => {
+                todo!()
+            }
+            ExpressionType::SubscriptCall(v) => self.execute_subscript(*v).await,
+            ExpressionType::OutputReference(_) => {
                 todo!()
             }
         }
