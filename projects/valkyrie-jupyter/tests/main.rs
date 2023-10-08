@@ -6,21 +6,8 @@ fn ready() {
 use valkyrie_interpreter::ValkyrieVM;
 
 const WRONG: &str = r#"namespace test;
-// empty table
-()⁏
-// list like table
-(1, 2, 3)⁏
-// dict like table
-(
-    a: 1, 
-    b: 2,
-)⁏
-// mix style table
-(
-    1, 2, 3,
-    a: 1,
-    b: 2,
-)⁏
+let a = 1⁏
+let mut ma = 1⁏
 "#;
 
 #[tokio::test]

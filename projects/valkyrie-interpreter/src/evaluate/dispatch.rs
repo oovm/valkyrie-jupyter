@@ -28,7 +28,7 @@ impl ValkyrieScope {
             StatementNode::Control(_) => {
                 todo!()
             }
-            StatementNode::Expression(v) => self.execute_term_expression(*v).await,
+            StatementNode::Expression(v) => self.execute_expression_term(*v).await,
             StatementNode::Annotation(_) => {
                 todo!()
             }
@@ -64,7 +64,7 @@ impl ValkyrieScope {
             }
         }
     }
-    pub async fn execute_term_expression(&mut self, expr: ExpressionNode) -> ValkyrieResult<ValkyrieValue> {
+    pub async fn execute_expression_term(&mut self, expr: ExpressionNode) -> ValkyrieResult<ValkyrieValue> {
         let value = self.execute_expr(expr.body).await?;
         Ok(value)
     }

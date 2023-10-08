@@ -1,5 +1,5 @@
 use super::*;
-use valkyrie_ast::ModifiersNode;
+use valkyrie_ast::{IdentifierPattern, ModifiersNode};
 
 #[derive(Clone, Debug)]
 pub struct ValkyrieVariable {
@@ -14,16 +14,8 @@ pub struct ValkyrieVariable {
 }
 
 impl ValkyrieScope {
-    pub fn define_variable<S>(
-        &mut self,
-        name: S,
-        attributes: &ModifiersNode,
-        value: ValkyrieValue,
-    ) -> ValkyrieResult<ValkyrieValue>
-    where
-        S: ToString,
-    {
-        let name = name.to_string();
+    pub fn define_variable(&mut self, pattern: &IdentifierPattern, value: ValkyrieValue) -> ValkyrieResult<ValkyrieValue> {
+        let name = &pattern.identifier.name;
         let out = value.clone();
         match self.entries.get(name.as_str()) {
             Some(s) => match s {
@@ -38,8 +30,8 @@ impl ValkyrieScope {
             },
             None => {}
         }
-        let protected = attributes.contains("final");
-        let mutable = attributes.contains("mut");
+        let protected = pattern.modifiers.contains("final");
+        let mutable = pattern.modifiers.contains("mut");
         let var = ValkyrieEntry::Variable(Box::new(ValkyrieVariable { protected, mutable, typing: None, value }));
         match self.entries.insert(name.to_string(), var) {
             Some(_) => {}

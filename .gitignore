@@ -13,4 +13,6 @@ time-travel.*
 target/
 Cargo.lock
 .ipynb_checkpoints/
+.virtual_documents/
 Untitled.ipynb
+

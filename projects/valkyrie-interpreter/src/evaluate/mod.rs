@@ -4,9 +4,10 @@ use std::str::FromStr;
 use valkyrie_antlr::ValkyrieProgramParser;
 use valkyrie_ast::{
     ArrayNode, ArrayTermNode, CallNode, ExpressionNode, ExpressionType, LetBindNode, LetPattern, NamePathNode,
-    NumberLiteralNode, StatementNode, StringLiteralNode, SubscriptCallNode, SwitchStatement, TupleNode,
+    NumberLiteralNode, StatementNode, StringLiteralNode, SubscriptCallNode, SwitchStatement, TupleKeyType, TupleKind,
+    TupleNode,
 };
-use valkyrie_types::{Gc, Num, SyntaxError, ValkyrieError, ValkyrieNumber, ValkyrieValue};
+use valkyrie_types::{Gc, Num, SyntaxError, ValkyrieError, ValkyrieList, ValkyrieNumber, ValkyrieValue};
 
 mod dispatch;
 mod jmp_switch;
@@ -23,7 +24,7 @@ impl ValkyrieVM {
     pub fn parse_statements(code: &str) -> ValkyrieResult<Vec<StatementNode>> {
         match ValkyrieProgramParser::parse(code) {
             Ok(async_recursion) => Ok(async_recursion.statements),
-            Err(e) => Err(ValkyrieError::Syntax(Box::new(SyntaxError::new(e)))),
+            Err(e) => Err(ValkyrieError::from(SyntaxError::new(e.to_string()))),
         }
     }
 
@@ -65,6 +66,9 @@ impl ValkyrieScope {
             Some(s) => match s.name.as_str() {
                 "f32" => ValkyrieValue::parse_decimal(&number.value, 10),
                 "f64" => ValkyrieValue::parse_decimal(&number.value, 10),
+                "u8" => ValkyrieValue::parse_integer(&number.value, 10),
+                "u16" => ValkyrieValue::parse_integer(&number.value, 10),
+                "u32" => ValkyrieValue::parse_integer(&number.value, 10),
                 _ => Err(ValkyrieError::custom(format!("Unknown unit: {}", s.name))),
             },
             None => Ok(ValkyrieValue::Number(ValkyrieNumber::from_str_radix(&number.value, 10)?)),
@@ -73,7 +77,7 @@ impl ValkyrieScope {
     pub(crate) async fn execute_symbol(&mut self, symbol: NamePathNode) -> ValkyrieResult<ValkyrieValue> {
         let mut new = symbol.clone();
         match symbol.names.len() {
-            0 => Err(SyntaxError::new("Unreachable empty symbol name").with_span(&symbol.get_range()).into()),
+            0 => Err(SyntaxError::new("Unreachable empty symbol name").with_range(&symbol.get_range()).into()),
             1 => {
                 let head = unsafe { new.names.pop().unwrap_unchecked() };
                 match head.name.as_str() {
@@ -90,7 +94,18 @@ impl ValkyrieScope {
         }
     }
     pub(crate) async fn execute_tuple(&mut self, table: TupleNode) -> ValkyrieResult<ValkyrieValue> {
-        Err(ValkyrieError::custom(format!("Unknown execute_tuple: {:?}", table)))
+        let mut list = ValkyrieList::default();
+        for x in table.terms {
+            let value = self.execute_expr(x.value).await?;
+            match x.key {
+                TupleKeyType::Nothing => list.append_one(value),
+                TupleKeyType::Identifier(v) => list.append_named(v.name.as_str(), value)?,
+                // FIXME
+                TupleKeyType::Number(_) => list.append_one(value),
+                TupleKeyType::Subscript(_) => list.append_one(value),
+            }
+        }
+        Ok(ValkyrieValue::List(list))
     }
     pub(crate) async fn execute_array(&mut self, table: ArrayNode) -> ValkyrieResult<ValkyrieValue> {
         Err(ValkyrieError::custom(format!("Unknown execute_array: {:?}", table)))
@@ -110,8 +125,7 @@ impl ValkyrieScope {
         }
     }
     fn execute_regex(&mut self, string: &str) -> ValkyrieResult<ValkyrieValue> {
-        let value = json5::from_str(string)?;
-        Ok(ValkyrieValue::UTF8String(Gc::new(value)))
+        Ok(ValkyrieValue::UTF8String(Gc::new(string.to_string())))
     }
     fn execute_json(&mut self, string: &str) -> ValkyrieResult<ValkyrieValue> {
         Ok(json5::from_str(string)?)

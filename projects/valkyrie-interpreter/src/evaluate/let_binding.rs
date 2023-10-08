@@ -8,7 +8,7 @@ impl ValkyrieScope {
                 [v] => {
                     let rhs = match bind.body {
                         None => ValkyrieValue::Nothing,
-                        Some(v) => self.execute_term_expression(v).await?,
+                        Some(v) => self.execute_expression_term(v).await?,
                     };
                     todo!()
                     // self.define_variable(&v.key.name, &v.modifiers, rhs)
@@ -21,6 +21,13 @@ impl ValkyrieScope {
             LetPattern::Class(_) => Err(ValkyrieError::custom("Case class are not yet supported")),
             LetPattern::Union(_) => Err(ValkyrieError::custom("Case union are not yet supported")),
             LetPattern::Array(_) => Err(ValkyrieError::custom("Case array are not yet supported")),
+            LetPattern::Atom(v) => {
+                let rhs = match bind.body {
+                    Some(v) => self.execute_expression_term(v).await?,
+                    None => ValkyrieValue::Nothing,
+                };
+                self.define_variable(&v, rhs)
+            }
         }
     }
 }

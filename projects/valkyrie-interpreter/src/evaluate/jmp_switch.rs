@@ -25,7 +25,7 @@ impl ValkyrieScope {
     }
 
     async fn evaluate_pattern_when(&mut self, node: PatternWhenNode) -> ValkyrieResult<bool> {
-        match self.execute_term_expression(node.guard).await? {
+        match self.execute_expression_term(node.guard).await? {
             ValkyrieValue::Boolean(v) => Ok(v),
             _ => Err(SyntaxError::new("condition guard must be a boolean expression"))?,
         }
