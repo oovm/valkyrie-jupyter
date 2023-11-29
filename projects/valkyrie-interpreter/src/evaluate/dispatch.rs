@@ -1,26 +1,82 @@
 use super::*;
-use valkyrie_ast::ExpressionKind;
+use valkyrie_ast::{ExpressionKind, ForLoop, StatementBlock};
 
-impl ValkyrieScope {
-    pub async fn execute_statement(&mut self, stmt: StatementNode) -> ValkyrieResult<EvaluatedState> {
-        match stmt {
-            StatementNode::Nothing => Ok(ValkyrieValue::Nothing),
+impl Evaluate for ForLoop {
+    async fn execute(self, vm: &mut ValkyrieVM, scope: &mut ValkyrieScope) -> Self::Result {
+        let Self { pattern, iterator, condition, body, span } = self;
+
+        loop {
+            let guard = match condition {
+                Some(s) => s.execute(vm, scope).await?,
+                None => Ok(EvaluatedState::Normal(ValkyrieValue::Boolean(true))),
+            };
+
+            let cond_result = self.execute_while_cond(condition).await?;
+            match cond_result {
+                EvaluatedState::Normal(v) => {
+                    if !v.is_truthy() {
+                        break;
+                    }
+                }
+                _ => return Ok(cond_result),
+            }
+            let result = body.execute(vm, scope).await?;
+            match body.execute(vm, scope) {
+                // 从头开始
+                EvaluatedState::Normal(_) => continue,
+                // 从头开始
+                EvaluatedState::Continue => continue,
+                // 结束循环
+                EvaluatedState::Break => break,
+                // 结束循环, 结束函数
+                EvaluatedState::Return(_) => return Ok(result),
+                // 结束循环, 结束函数
+                EvaluatedState::Raise(_) => return Ok(result),
+            }
+        }
+        Ok(EvaluatedState::Normal(ValkyrieValue::Null))
+    }
+}
+
+impl Evaluate for StatementBlock {
+    async fn execute(self, vm: &mut ValkyrieVM, scope: &mut ValkyrieScope) -> Self::Result {
+        // `old { new }`
+        let mut new = scope.fork();
+        for term in self.terms {
+            let result = term.execute(vm, &mut new).await?;
+            match result {
+                // 运行下一句
+                EvaluatedState::Normal(_) => continue,
+                // 停止运行下一句, 从头开始
+                EvaluatedState::Continue => break,
+                // 停止运行下一句, 结束段落
+                EvaluatedState::Break => return Ok(result),
+                // 停止运行下一句, 结束函数
+                EvaluatedState::Return(_) => return Ok(result),
+                // 停止运行下一句, 结束函数
+                EvaluatedState::Raise(_) => return Ok(result),
+            }
+        }
+        Ok(EvaluatedState::Normal(ValkyrieValue::Null))
+    }
+}
+
+impl Evaluate for StatementNode {
+    async fn execute(self, vm: &mut ValkyrieVM, scope: &mut ValkyrieScope) -> Self::Result {
+        match self {
+            StatementNode::Nothing => Ok(EvaluatedState::Normal(ValkyrieValue::Null)),
             StatementNode::Document(_) => {
                 todo!()
             }
-            StatementNode::Namespace(_) => Ok(ValkyrieValue::Null),
+            StatementNode::Namespace(_) => Ok(EvaluatedState::Normal(ValkyrieValue::Null)),
             StatementNode::Import(_) => {
                 todo!()
             }
             StatementNode::Class(_) => {
                 todo!()
             }
-            StatementNode::While(_) => {
-                todo!()
-            }
-            StatementNode::For(_) => {
-                todo!()
-            }
+            StatementNode::While(v) => v.execute(vm, scope)?,
+            StatementNode::For(v) => v.execute(vm, scope)?,
             StatementNode::Function(_) => {
                 todo!()
             }
@@ -51,13 +107,17 @@ impl ValkyrieScope {
             }
         }
     }
-    pub async fn execute_expression_term(&mut self, expr: ExpressionNode) -> ValkyrieResult<ValkyrieValue> {
+}
+
+impl Evaluate for ExpressionNode {
+    async fn execute(self, vm: &mut ValkyrieVM, scope: &mut ValkyrieScope) -> Self::Result {
         let value = self.execute_expr(expr.body).await?;
         Ok(value)
     }
-    #[async_recursion]
-    pub(crate) async fn execute_expr(&mut self, expr: ExpressionKind) -> ValkyrieResult<ValkyrieValue> {
-        match expr {
+}
+impl Evaluate for ExpressionKind {
+    async fn execute(self, vm: &mut ValkyrieVM, scope: &mut ValkyrieScope) -> Self::Result {
+        match self {
             ExpressionKind::Placeholder => Err(ValkyrieError::custom("Placeholder expression should never be executed")),
             ExpressionKind::GenericCall(_) => {
                 todo!()

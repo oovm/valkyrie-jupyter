@@ -1,8 +1,8 @@
 use super::*;
 use valkyrie_ast::{PatternNode, VariableDeclaration, VariantDeclaration};
 
-impl ValkyrieScope {
-    pub(crate) async fn execute_let_bind(&mut self, bind: VariableDeclaration) -> ValkyrieResult<ValkyrieValue> {
+impl Evaluate for VariableDeclaration {
+    async fn execute(self, vm: &mut ValkyrieVM, scope: &mut ValkyrieScope) -> Self::Result {
         match bind.pattern {
             PatternNode::Tuple(t) => match t.terms.as_slice() {
                 [] => Err(ValkyrieError::custom("Empty tuple patterns are not allowed")),

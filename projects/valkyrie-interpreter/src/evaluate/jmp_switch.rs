@@ -1,8 +1,8 @@
 use super::*;
-use valkyrie_ast::{PatternCondition, PatternWhenNode};
+use valkyrie_ast::{ExpressionKind, PatternCondition, PatternWhenNode};
 
-impl ValkyrieScope {
-    pub async fn evaluate_switch(&mut self, node: SwitchStatement) -> ValkyrieResult<ValkyrieValue> {
+impl Evaluate for SwitchStatement {
+    async fn execute(self, vm: &mut ValkyrieVM, scope: &mut ValkyrieScope) -> Self::Result {
         let mut last = ValkyrieValue::Unit;
         // for branch in node.branches {
         //     let is_true = match branch.condition {
@@ -23,8 +23,10 @@ impl ValkyrieScope {
         // no condition, no statements, return unit
         Ok(last)
     }
+}
 
-    async fn evaluate_pattern_when(&mut self, node: PatternWhenNode) -> ValkyrieResult<bool> {
+impl Evaluate for PatternWhenNode {
+    async fn execute(self, vm: &mut ValkyrieVM, scope: &mut ValkyrieScope) -> Self::Result {
         match self.execute_expression_term(node.guard).await? {
             ValkyrieValue::Boolean(v) => Ok(v),
             _ => Err(SyntaxError::new("condition guard must be a boolean expression"))?,
