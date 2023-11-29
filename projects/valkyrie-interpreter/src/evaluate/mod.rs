@@ -1,34 +1,93 @@
-use crate::{ValkyrieEntry, ValkyrieResult, ValkyrieScope, ValkyrieVM};
+use crate::{ValkyrieEntry, ValkyrieScope, ValkyrieVM};
 use async_recursion::async_recursion;
 use std::str::FromStr;
-use valkyrie_antlr::ValkyrieProgramParser;
 use valkyrie_ast::{
-    ArrayNode, ArrayTermNode, CallNode, ExpressionNode, ExpressionType, LetBindNode, LetPattern, NamePathNode,
-    NumberLiteralNode, StatementNode, StringLiteralNode, SubscriptCallNode, SwitchStatement, TupleKeyType, TupleKind,
-    TupleNode,
+    ExpressionNode, NamePathNode, NumberLiteralNode, StatementNode, StringLiteralNode, SubscriptCallNode, SwitchStatement,
+    TupleNode, WhileConditionNode, WhileLoop, WhileLoopKind,
 };
-use valkyrie_types::{Gc, Num, SyntaxError, ValkyrieError, ValkyrieList, ValkyrieNumber, ValkyrieValue};
+use valkyrie_types::{
+    Gc, Num, ProgramContext, SyntaxError, ValkyrieError, ValkyrieList, ValkyrieNumber, ValkyrieResult, ValkyrieValue,
+};
 
 mod dispatch;
 mod jmp_switch;
 mod let_binding;
 
+pub type EvaluatedResult = Result<EvaluatedState, ValkyrieError>;
+
+pub enum EvaluatedState {
+    /// A normal return
+    Normal(ValkyrieValue),
+    /// A early return
+    Return(ValkyrieValue),
+    /// Unbounded raise
+    ///
+    /// Generally speaking, it is due to forgetting to handle errors.
+    Raise(ValkyrieValue),
+    /// Break the loop controller
+    Break,
+    /// Continue next loop
+    Continue,
+}
+
 impl ValkyrieVM {
-    pub async fn execute_script(&mut self, code: &str) -> ValkyrieResult<Vec<ValkyrieValue>> {
+    pub(crate) async fn execute_while(&mut self, node: WhileLoop) -> EvaluatedResult {
+        let WhileLoop { kind, condition, then, .. } = node;
+
+        loop {
+            let cond_result = self.execute_while_cond(condition).await?;
+            match cond_result {
+                EvaluatedState::Normal(v) => match kind {
+                    WhileLoopKind::While => {
+                        if !v.is_truthy() {
+                            break;
+                        }
+                    }
+                    WhileLoopKind::Until => {
+                        if v.is_truthy() {
+                            break;
+                        }
+                    }
+                },
+                _ => return Ok(cond_result),
+            }
+            for i in then.terms {
+                let body_result = self.execute_statement(i).await?;
+                match body_result {
+                    EvaluatedState::Normal(_) | EvaluatedState::Continue => continue,
+                    EvaluatedState::Break => break,
+                    EvaluatedState::Return(_) | EvaluatedState::Raise(_) => return Ok(body_result),
+                }
+            }
+        }
+        Ok(EvaluatedState::Normal(ValkyrieValue::Null))
+    }
+    async fn execute_while_cond(&mut self, node: WhileConditionNode) -> EvaluatedResult {
+        match node {
+            WhileConditionNode::Unconditional => Ok(EvaluatedState::Normal(ValkyrieValue::Boolean(true))),
+            WhileConditionNode::Expression(_) => Ok(EvaluatedState::Normal(ValkyrieValue::Boolean(true))),
+            WhileConditionNode::Case(_) => Ok(EvaluatedState::Normal(ValkyrieValue::Boolean(true))),
+        }
+    }
+}
+
+impl ValkyrieVM {
+    pub async fn execute_script(&mut self, file: FileId) -> ValkyrieResult<Vec<ValkyrieValue>> {
         let mut output = Vec::new();
-        for i in ValkyrieVM::parse_statements(code)? {
+        for i in self.parse_statements(file)? {
             output.push(self.execute_statement(i).await?)
         }
         Ok(output)
     }
-    pub fn parse_statements(code: &str) -> ValkyrieResult<Vec<StatementNode>> {
-        match ValkyrieProgramParser::parse(code) {
+    pub fn parse_statements(&mut self, file: &str) -> ValkyrieResult<Vec<StatementNode>> {
+        let ctx = ProgramContext { file: Default::default() };
+        match ctx.parse(&mut self.files) {
             Ok(async_recursion) => Ok(async_recursion.statements),
             Err(e) => Err(ValkyrieError::from(SyntaxError::new(e.to_string()))),
         }
     }
 
-    pub async fn execute_statement(&mut self, stmt: StatementNode) -> ValkyrieResult<ValkyrieValue> {
+    pub async fn execute_statement(&mut self, stmt: StatementNode) -> ValkyrieResult<EvaluatedState> {
         self.top_scope.execute_statement(stmt).await
     }
 }

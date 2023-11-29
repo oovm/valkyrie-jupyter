@@ -5,26 +5,21 @@
 use crate::traits::ThisValidator;
 use clap::{Parser, Subcommand};
 
-use serde_json::Value;
-use std::path::PathBuf;
-use valkyrie_ast::StatementNode;
-// use valkyrie_parser::ThisParser;
-use valkyrie_antlr;
-
 mod evaluate;
 mod results;
 mod scope;
 mod traits;
 
 pub use crate::scope::{function::ValkyrieFunction, variable::ValkyrieVariable, ValkyrieEntry, ValkyrieScope};
-pub use valkyrie_types::{ValkyrieError, ValkyrieResult, ValkyrieValue};
+pub use valkyrie_types::{ValkyrieEnumerate, ValkyrieError, ValkyrieValue};
 
 pub struct ValkyrieVM {
+    files: FileCache,
     top_scope: ValkyrieScope,
 }
 
 impl Default for ValkyrieVM {
     fn default() -> Self {
-        ValkyrieVM { top_scope: ValkyrieScope::default() }
+        ValkyrieVM { files: (), top_scope: ValkyrieScope::default() }
     }
 }

@@ -1,9 +1,10 @@
 use super::*;
+use valkyrie_ast::{PatternNode, VariableDeclaration, VariantDeclaration};
 
 impl ValkyrieScope {
-    pub(crate) async fn execute_let_bind(&mut self, bind: LetBindNode) -> ValkyrieResult<ValkyrieValue> {
+    pub(crate) async fn execute_let_bind(&mut self, bind: VariableDeclaration) -> ValkyrieResult<ValkyrieValue> {
         match bind.pattern {
-            LetPattern::Tuple(t) => match t.terms.as_slice() {
+            PatternNode::Tuple(t) => match t.terms.as_slice() {
                 [] => Err(ValkyrieError::custom("Empty tuple patterns are not allowed")),
                 [v] => {
                     let rhs = match bind.body {
@@ -17,11 +18,11 @@ impl ValkyrieScope {
                     return Err(ValkyrieError::custom("Tuple patterns are not yet supported"));
                 }
             },
-            LetPattern::Symbol(_) => Err(ValkyrieError::custom("Case symbol are not yet supported")),
-            LetPattern::Class(_) => Err(ValkyrieError::custom("Case class are not yet supported")),
-            LetPattern::Union(_) => Err(ValkyrieError::custom("Case union are not yet supported")),
-            LetPattern::Array(_) => Err(ValkyrieError::custom("Case array are not yet supported")),
-            LetPattern::Atom(v) => {
+            PatternNode::Symbol(_) => Err(ValkyrieError::custom("Case symbol are not yet supported")),
+            PatternNode::Class(_) => Err(ValkyrieError::custom("Case class are not yet supported")),
+            PatternNode::Union(_) => Err(ValkyrieError::custom("Case union are not yet supported")),
+            PatternNode::Array(_) => Err(ValkyrieError::custom("Case array are not yet supported")),
+            PatternNode::Atom(v) => {
                 let rhs = match bind.body {
                     Some(v) => self.execute_expression_term(v).await?,
                     None => ValkyrieValue::Nothing,

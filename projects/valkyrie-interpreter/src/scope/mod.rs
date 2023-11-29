@@ -3,7 +3,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use crate::{ValkyrieError, ValkyrieResult, ValkyrieVariable};
+use crate::{ValkyrieError, ValkyrieVariable};
 use valkyrie_types::{ValkyrieFunction, ValkyrieValue};
 
 pub mod function;
