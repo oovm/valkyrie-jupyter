@@ -9,7 +9,7 @@ const LITERALS: &str = r#"
 true
 false
 nil
-null\
+null
 0
 1
 2

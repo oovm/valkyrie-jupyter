@@ -7,10 +7,9 @@ use valkyrie_ast::{
     WhileConditionNode, WhileLoop, WhileLoopKind,
 };
 use valkyrie_types::{
-    Failure, FileID, Gc, Num, ProgramContext, StringFormatterBuilder, Success, SyntaxError, ValkyrieError, ValkyrieList,
-    ValkyrieNumber, ValkyrieResult, ValkyrieSuccess, ValkyrieValue,
+    Failure, FileID, Gc, MissingError, Num, ProgramContext, StringFormatterBuilder, Success, SyntaxError, ValkyrieError,
+    ValkyrieList, ValkyrieNumber, ValkyrieResult, ValkyrieSuccess, ValkyrieValue,
 };
-
 mod dispatch;
 mod jmp_switch;
 mod let_binding;
@@ -108,7 +107,10 @@ impl Evaluate for ProgramRoot {
         for term in &self.statements {
             let result = match term.execute(vm, scope).await {
                 Ok(o) => o,
-                Err(_) => continue,
+                Err(e) => {
+                    out.push(Err(e));
+                    continue;
+                }
             };
             match result {
                 EvaluatedState::Normal(o) => {
@@ -256,16 +258,12 @@ impl Evaluate for NumberLiteralNode {
 impl Evaluate for NamePathNode {
     #[async_recursion]
     async fn execute(&self, vm: &ValkyrieVM, scope: &ValkyrieScope) -> Self::Result {
-        match self.names.len() {
-            0 => Err(SyntaxError::new("Unreachable empty symbol name").into()),
-            1 => {
-                let head = unsafe { self.names.get_unchecked(0) };
+        match self.names.as_slice() {
+            [] => Err(SyntaxError::new("Unreachable empty symbol name").into()),
+            [head] => {
                 match head.name.as_str() {
-                    "true" => Ok(EvaluatedState::Normal(ValkyrieValue::Boolean(true))),
-                    "false" => Ok(EvaluatedState::Normal(ValkyrieValue::Boolean(false))),
-                    "null" => Ok(EvaluatedState::Normal(ValkyrieValue::Null)),
                     _ => {
-                        Err(ValkyrieError::custom(format!("Symbol `{}` is undefined", head.name)))
+                        Err(MissingError::undefined(&head.name).with_span(head.span).into())
 
                         // match self.get_variable(&head.name)? {
                         //     ValkyrieEntry::Variable(v) => Ok(v.value),
