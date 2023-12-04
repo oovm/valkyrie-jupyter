@@ -1,5 +1,6 @@
 use super::*;
 use valkyrie_ast::IdentifierPattern;
+use valkyrie_types::ValkyrieResult;
 
 #[derive(Clone, Debug)]
 pub struct ValkyrieVariable {

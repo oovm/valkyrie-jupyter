@@ -4,15 +4,15 @@ use std::{
 };
 
 use crate::{ValkyrieError, ValkyrieVariable};
+use dashmap::DashMap;
 use valkyrie_types::{ValkyrieFunction, ValkyrieValue};
-
 pub mod function;
 pub mod variable;
 
 #[derive(Clone, Debug)]
 pub struct ValkyrieScope {
     parent: Option<Arc<Mutex<ValkyrieScope>>>,
-    entries: BTreeMap<String, ValkyrieEntry>,
+    entries: DashMap<String, ValkyrieEntry>,
 }
 
 #[derive(Clone, Debug)]

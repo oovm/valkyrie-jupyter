@@ -10,6 +10,7 @@ edition = "2021"
 
 
 [dependencies]
+dashmap = "5.5.3"
 async-recursion = "1.0.5"
 clap = { version = "4.4.2", features = ["derive"] }
 serde = { version = "1.0.188", features = ["derive"] }

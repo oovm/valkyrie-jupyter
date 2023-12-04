@@ -3,17 +3,16 @@
 #![feature(never_type)]
 #![feature(associated_type_defaults)]
 
+pub use crate::scope::{function::ValkyrieFunction, variable::ValkyrieVariable, ValkyrieEntry, ValkyrieScope};
 use crate::traits::ThisValidator;
 use clap::{Parser, Subcommand};
+use valkyrie_types::FileCache;
+pub use valkyrie_types::{ValkyrieEnumerate, ValkyrieError, ValkyrieValue};
 
 mod evaluate;
 mod results;
 mod scope;
 mod traits;
-
-pub use crate::scope::{function::ValkyrieFunction, variable::ValkyrieVariable, ValkyrieEntry, ValkyrieScope};
-use valkyrie_types::FileCache;
-pub use valkyrie_types::{ValkyrieEnumerate, ValkyrieError, ValkyrieValue};
 
 pub struct ValkyrieVM {
     files: FileCache,
