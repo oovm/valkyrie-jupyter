@@ -46,9 +46,7 @@ impl Evaluate for StatementKind {
             StatementKind::Function(_) => {
                 todo!()
             }
-            StatementKind::Control(_) => {
-                todo!()
-            }
+            StatementKind::Control(v) => v.execute(vm, scope).await,
             StatementKind::Expression(v) => v.execute(vm, scope).await,
             StatementKind::Annotation(_) => {
                 todo!()

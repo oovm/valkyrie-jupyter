@@ -1,7 +1,5 @@
 use crate::{config::ValkyrieConfig, DisplayKeywords, DisplayNumber};
-use jupyter::{
-    to_value, value_type::HtmlText, ExecutionRequest, JupyterError, JupyterKernelSockets, JupyterMessage, Serialize, Value,
-};
+use jupyter::{to_value, value_type::HtmlText, ExecutionRequest, JupyterError, JupyterKernelSockets, JupyterMessage};
 use valkyrie_interpreter::{ValkyrieError, ValkyrieVM, ValkyrieValue};
 
 pub struct ValkyrieExecutor {

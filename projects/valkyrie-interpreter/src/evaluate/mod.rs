@@ -111,7 +111,11 @@ impl Evaluate for ProgramRoot {
                 Err(_) => continue,
             };
             match result {
-                EvaluatedState::Normal(o) => out.push(Ok(o)),
+                EvaluatedState::Normal(o) => {
+                    if !o.is_nothing() {
+                        out.push(Ok(o))
+                    }
+                }
                 EvaluatedState::Return(_) => {
                     out.push(Err(ValkyrieError::runtime_error("Unexpected `raise` outside of function")))
                 }
@@ -182,14 +186,23 @@ impl Evaluate for WhileConditionNode {
 
 impl ValkyrieVM {
     pub async fn execute_script(&mut self, file: FileID) -> Vec<Result<ValkyrieValue, ValkyrieError>> {
+        let mut errors = vec![];
         let ctx = ProgramContext { file };
-        let res = ctx.parse(&mut self.files).result(|e| {
-            e.as_report().eprint(&self.files).ok();
-        });
-        match res {
-            Ok(o) => o.execute(self, &self.top_scope).await,
-            Err(e) => vec![Err(e.into())],
-        }
+        let res = match ctx.parse(&mut self.files) {
+            Success { value, diagnostics } => {
+                if !diagnostics.is_empty() {
+                    errors.extend(diagnostics.into_iter().map(Err));
+                    return errors;
+                }
+                value
+            }
+            Failure { fatal, diagnostics } => {
+                errors.extend(diagnostics.into_iter().map(Err));
+                errors.push(Err(fatal));
+                return errors;
+            }
+        };
+        res.execute(self, &self.top_scope).await
     }
 }
 
@@ -226,42 +239,43 @@ impl Evaluate for SubscriptCallNode {
 impl Evaluate for NumberLiteralNode {
     #[async_recursion]
     async fn execute(&self, vm: &ValkyrieVM, scope: &ValkyrieScope) -> Self::Result {
-        todo!()
-        // match number.unit {
-        //     Some(s) => match s.name.as_str() {
-        //         "f32" => ValkyrieValue::parse_decimal(&number.value, 10),
-        //         "f64" => ValkyrieValue::parse_decimal(&number.value, 10),
-        //         "u8" => ValkyrieValue::parse_integer(&number.value, 10),
-        //         "u16" => ValkyrieValue::parse_integer(&number.value, 10),
-        //         "u32" => ValkyrieValue::parse_integer(&number.value, 10),
-        //         _ => Err(ValkyrieError::custom(format!("Unknown unit: {}", s.name))),
-        //     },
-        //     None => Ok(ValkyrieValue::Number(ValkyrieNumber::from_str_radix(&number.value, 10)?)),
-        // }
+        match &self.unit {
+            Some(s) => match s.name.as_str() {
+                // "f32" => ValkyrieValue::parse_decimal(&number.value, 10),
+                // "f64" => ValkyrieValue::parse_decimal(&number.value, 10),
+                // "u8" => ValkyrieValue::parse_integer(&number.value, 10),
+                // "u16" => ValkyrieValue::parse_integer(&number.value, 10),
+                // "u32" => ValkyrieValue::parse_integer(&number.value, 10),
+                _ => Err(ValkyrieError::custom(format!("Unknown unit: {}", s.name))),
+            },
+            None => Err(ValkyrieError::custom(format!("Can't parse number: {}", self))),
+        }
     }
 }
 
 impl Evaluate for NamePathNode {
     #[async_recursion]
     async fn execute(&self, vm: &ValkyrieVM, scope: &ValkyrieScope) -> Self::Result {
-        todo!()
-        // let mut new = symbol.clone();
-        // match symbol.names.len() {
-        //     0 => Err(SyntaxError::new("Unreachable empty symbol name").with_range(&symbol.get_range()).into()),
-        //     1 => {
-        //         let head = unsafe { new.names.pop().unwrap_unchecked() };
-        //         match head.name.as_str() {
-        //             "true" => Ok(ValkyrieValue::Boolean(true)),
-        //             "false" => Ok(ValkyrieValue::Boolean(false)),
-        //             "null" => Ok(ValkyrieValue::Null),
-        //             _ => match self.get_variable(&head.name)? {
-        //                 ValkyrieEntry::Variable(v) => Ok(v.value),
-        //                 ValkyrieEntry::Function(v) => Err(ValkyrieError::custom(format!("Symbol is a function: {:?}", v))),
-        //             },
-        //         }
-        //     }
-        //     _ => Err(ValkyrieError::custom(format!("Unknown symbol: {:?}", symbol.names))),
-        // }
+        match self.names.len() {
+            0 => Err(SyntaxError::new("Unreachable empty symbol name").into()),
+            1 => {
+                let head = unsafe { self.names.get_unchecked(0) };
+                match head.name.as_str() {
+                    "true" => Ok(EvaluatedState::Normal(ValkyrieValue::Boolean(true))),
+                    "false" => Ok(EvaluatedState::Normal(ValkyrieValue::Boolean(false))),
+                    "null" => Ok(EvaluatedState::Normal(ValkyrieValue::Null)),
+                    _ => {
+                        Err(ValkyrieError::custom(format!("Symbol `{}` is undefined", head.name)))
+
+                        // match self.get_variable(&head.name)? {
+                        //     ValkyrieEntry::Variable(v) => Ok(v.value),
+                        //     ValkyrieEntry::Function(v) => Err(ValkyrieError::custom(format!("Symbol is a function: {:?}", v))),
+                        // }
+                    }
+                }
+            }
+            _ => Err(ValkyrieError::custom(format!("Unsupported symbol: {:?}", self.names))),
+        }
     }
 }
 
