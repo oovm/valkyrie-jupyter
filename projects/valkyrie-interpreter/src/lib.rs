@@ -6,6 +6,7 @@
 pub use crate::scope::{function::ValkyrieFunction, variable::ValkyrieVariable, ValkyrieEntry, ValkyrieScope};
 use crate::traits::ThisValidator;
 use clap::{Parser, Subcommand};
+use std::{io::Error, path::Path};
 use valkyrie_types::{FileCache, FileID};
 pub use valkyrie_types::{ValkyrieEnumerate, ValkyrieError, ValkyrieValue};
 
@@ -17,7 +18,6 @@ mod traits;
 pub struct ValkyrieVM {
     files: FileCache,
     top_scope: ValkyrieScope,
-    errors: Vec<ValkyrieError>,
 }
 
 impl AsRef<FileCache> for ValkyrieVM {
@@ -28,7 +28,7 @@ impl AsRef<FileCache> for ValkyrieVM {
 
 impl Default for ValkyrieVM {
     fn default() -> Self {
-        ValkyrieVM { files: FileCache::default(), top_scope: ValkyrieScope::default(), errors: vec![] }
+        ValkyrieVM { files: FileCache::default(), top_scope: ValkyrieScope::default() }
     }
 }
 
@@ -36,11 +36,7 @@ impl ValkyrieVM {
     pub fn load_snippet(&mut self, snippet: &str, name: &str) -> FileID {
         self.files.load_text(snippet, name)
     }
-
-    pub fn add_error<E>(&mut self, error: E)
-    where
-        E: Into<ValkyrieError>,
-    {
-        self.errors.push(error.into())
+    pub fn load_file<P: AsRef<Path>>(&mut self, path: P) -> Result<FileID, Error> {
+        self.files.load_local(path)
     }
 }

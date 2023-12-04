@@ -1,14 +1,15 @@
-use crate::{ValkyrieEntry, ValkyrieScope, ValkyrieVM};
+use crate::{ValkyrieScope, ValkyrieVM};
 use async_recursion::async_recursion;
-use std::{future::Future, str::FromStr, thread::scope};
+use std::{future::Future, str::FromStr};
 use valkyrie_ast::{
+    helper::{StringInterpreter, ValkyrieNode},
     ControlKind, ControlNode, ExpressionKind, ExpressionNode, ForLoop, FormatterNode, NamePathNode, NumberLiteralNode,
-    ProgramRoot, StatementKind, StringInterpreter, StringLiteralNode, SubscriptCallNode, SwitchStatement, TupleNode,
-    WhileConditionNode, WhileLoop, WhileLoopKind,
+    ProgramRoot, StatementKind, StringLiteralNode, SubscriptCallNode, SwitchStatement, TupleNode, WhileConditionNode,
+    WhileLoop, WhileLoopKind,
 };
 use valkyrie_types::{
     Failure, FileID, Gc, MissingError, Num, ProgramContext, StringFormatterBuilder, Success, SyntaxError, ValkyrieError,
-    ValkyrieList, ValkyrieNumber, ValkyrieResult, ValkyrieSuccess, ValkyrieValue,
+    ValkyrieList, ValkyrieResult, ValkyrieValue,
 };
 mod dispatch;
 mod jmp_switch;
@@ -250,7 +251,7 @@ impl Evaluate for NumberLiteralNode {
                 // "u32" => ValkyrieValue::parse_integer(&number.value, 10),
                 _ => Err(ValkyrieError::custom(format!("Unknown unit: {}", s.name))),
             },
-            None => Err(ValkyrieError::custom(format!("Can't parse number: {}", self))),
+            None => Err(SyntaxError::new(format!("Can't parse number: `{}`", self)).with_span(self.span).into()),
         }
     }
 }
@@ -258,40 +259,26 @@ impl Evaluate for NumberLiteralNode {
 impl Evaluate for NamePathNode {
     #[async_recursion]
     async fn execute(&self, vm: &ValkyrieVM, scope: &ValkyrieScope) -> Self::Result {
-        match self.names.as_slice() {
-            [] => Err(SyntaxError::new("Unreachable empty symbol name").into()),
-            [head] => {
-                match head.name.as_str() {
-                    _ => {
-                        Err(MissingError::undefined(&head.name).with_span(head.span).into())
-
-                        // match self.get_variable(&head.name)? {
-                        //     ValkyrieEntry::Variable(v) => Ok(v.value),
-                        //     ValkyrieEntry::Function(v) => Err(ValkyrieError::custom(format!("Symbol is a function: {:?}", v))),
-                        // }
-                    }
-                }
-            }
-            _ => Err(ValkyrieError::custom(format!("Unsupported symbol: {:?}", self.names))),
-        }
+        Err(MissingError::undefined(&self.to_string()).with_span(self.span).into())
+        // match self.get_variable(&head.name)? {
+        //     ValkyrieEntry::Variable(v) => Ok(v.value),
+        //     ValkyrieEntry::Function(v) => Err(ValkyrieError::custom(format!("Symbol is a function: {:?}", v))),
+        // }
     }
 }
 
 impl Evaluate for TupleNode {
     #[async_recursion]
     async fn execute(&self, vm: &ValkyrieVM, scope: &ValkyrieScope) -> Self::Result {
-        todo!()
-        // let mut list = ValkyrieList::default();
-        // for x in table.terms {
-        //     let value = self.execute_expr(x.value).await?;
-        //     match x.key {
-        //         TupleKeyType::Nothing => list.append_one(value),
-        //         TupleKeyType::Identifier(v) => list.append_named(v.name.as_str(), value)?,
-        //         // FIXME
-        //         TupleKeyType::Number(_) => list.append_one(value),
-        //         TupleKeyType::Subscript(_) => list.append_one(value),
-        //     }
-        // }
+        let mut list = ValkyrieList::default();
+        for x in &self.terms.terms {
+            let value = x.value.execute(vm, scope).await?;
+            // match x.key {
+            //     ArgumentKey::Nothing => list.append_one(value),
+            //     ArgumentKey::Symbol(v) => list.append_named(v.name.as_str(), value)?,
+            // }
+        }
+        Err(ValkyrieError::custom(format!("TODO: impl Evaluate for TupleNode")))
         // Ok(ValkyrieValue::List(list))
     }
 }
@@ -301,7 +288,7 @@ impl Evaluate for StringLiteralNode {
     async fn execute(&self, vm: &ValkyrieVM, scope: &ValkyrieScope) -> Self::Result {
         match &self.handler {
             Some(s) => match s.name.as_str() {
-                // "r" => Ok(ValkyrieValue::UTF8String(Gc::new(self.as_raw().text))),
+                "r" => return Ok(EvaluatedState::Normal(ValkyrieValue::UTF8String(Gc::new(self.as_raw().text)))),
                 // "re" => self.execute_regex(&self.literal),
                 // "sh" => self.execute_shell(&self.literal).await,
                 // "json" => self.execute_json(&self.literal),
@@ -324,7 +311,7 @@ impl Evaluate for StringLiteralNode {
 impl Evaluate for FormatterNode {
     #[async_recursion]
     async fn execute(&self, vm: &ValkyrieVM, scope: &ValkyrieScope) -> Self::Result {
-        todo!()
+        Err(ValkyrieError::custom(format!("TODO: impl Evaluate for FormatterNode")))
     }
 }
 fn execute_regex(string: &str) -> ValkyrieResult<ValkyrieValue> {
