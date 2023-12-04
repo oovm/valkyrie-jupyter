@@ -2,13 +2,13 @@ use crate::{ValkyrieEntry, ValkyrieScope, ValkyrieVM};
 use async_recursion::async_recursion;
 use std::{future::Future, str::FromStr, thread::scope};
 use valkyrie_ast::{
-    ControlKind, ControlNode, ExpressionKind, ExpressionNode, ForLoop, NamePathNode, NumberLiteralNode, ProgramRoot,
-    StatementKind, StringLiteralNode, SubscriptCallNode, SwitchStatement, TupleNode, WhileConditionNode, WhileLoop,
-    WhileLoopKind,
+    ControlKind, ControlNode, ExpressionKind, ExpressionNode, ForLoop, FormatterNode, NamePathNode, NumberLiteralNode,
+    ProgramRoot, StatementKind, StringInterpreter, StringLiteralNode, SubscriptCallNode, SwitchStatement, TupleNode,
+    WhileConditionNode, WhileLoop, WhileLoopKind,
 };
 use valkyrie_types::{
-    FileID, Gc, Num, ProgramContext, SyntaxError, ValkyrieError, ValkyrieList, ValkyrieNumber, ValkyrieResult, ValkyrieSuccess,
-    ValkyrieValue,
+    Failure, FileID, Gc, Num, ProgramContext, StringFormatterBuilder, Success, SyntaxError, ValkyrieError, ValkyrieList,
+    ValkyrieNumber, ValkyrieResult, ValkyrieSuccess, ValkyrieValue,
 };
 
 mod dispatch;
@@ -40,9 +40,10 @@ pub enum EvaluatedState {
 }
 
 impl Evaluate for ControlNode {
-    async fn execute(&self, vm: &ValkyrieVM, scope: &ValkyrieScope) -> Box<dyn Future<Output = Self::Result>> {
+    #[async_recursion]
+    async fn execute(&self, vm: &ValkyrieVM, scope: &ValkyrieScope) -> Self::Result {
         let result = match &self.expression {
-            Some(s) => s.execute(vm, scope).await,
+            Some(s) => s.execute(vm, scope).await?,
             None => EvaluatedState::nothing(),
         };
         let output = match result {
@@ -93,12 +94,16 @@ impl EvaluatedState {
 
 pub trait Evaluate {
     type Result = EvaluatedResult;
-    async fn execute(&self, vm: &ValkyrieVM, scope: &ValkyrieScope) -> Box<dyn Future<Output = Self::Result>>;
+    #[async_recursion]
+    async fn execute(&self, vm: &ValkyrieVM, scope: &ValkyrieScope) -> Self::Result {
+        panic!()
+    }
 }
 
 impl Evaluate for ProgramRoot {
     type Result = Vec<Result<ValkyrieValue, ValkyrieError>>;
-    async fn execute(&self, vm: &ValkyrieVM, scope: &ValkyrieScope) -> Box<dyn Future<Output = Self::Result>> {
+    #[async_recursion]
+    async fn execute(&self, vm: &ValkyrieVM, scope: &ValkyrieScope) -> Self::Result {
         let mut out = Vec::with_capacity(self.statements.len());
         for term in &self.statements {
             let result = match term.execute(vm, scope).await {
@@ -127,7 +132,8 @@ impl Evaluate for ProgramRoot {
 }
 
 impl Evaluate for WhileLoop {
-    async fn execute(&self, vm: &ValkyrieVM, scope: &ValkyrieScope) -> Box<dyn Future<Output = Self::Result>> {
+    #[async_recursion]
+    async fn execute(&self, vm: &ValkyrieVM, scope: &ValkyrieScope) -> Self::Result {
         let WhileLoop { kind, condition, then, .. } = self;
 
         let scope = scope.fork();
@@ -164,7 +170,8 @@ impl Evaluate for WhileLoop {
 }
 
 impl Evaluate for WhileConditionNode {
-    async fn execute(&self, vm: &ValkyrieVM, scope: &ValkyrieScope) -> Box<dyn Future<Output = Self::Result>> {
+    #[async_recursion]
+    async fn execute(&self, vm: &ValkyrieVM, scope: &ValkyrieScope) -> Self::Result {
         match self {
             WhileConditionNode::Unconditional => Ok(EvaluatedState::Normal(ValkyrieValue::Boolean(true))),
             WhileConditionNode::Expression(_) => Ok(EvaluatedState::Normal(ValkyrieValue::Boolean(true))),
@@ -187,7 +194,8 @@ impl ValkyrieVM {
 }
 
 impl Evaluate for SubscriptCallNode {
-    async fn execute(&self, vm: &ValkyrieVM, scope: &ValkyrieScope) -> Box<dyn Future<Output = Self::Result>> {
+    #[async_recursion]
+    async fn execute(&self, vm: &ValkyrieVM, scope: &ValkyrieScope) -> Self::Result {
         // let base = self.execute_expr(call.base).await?;
         // // let mut subs = vec![];
         // for term in call.terms {
@@ -216,7 +224,8 @@ impl Evaluate for SubscriptCallNode {
 }
 
 impl Evaluate for NumberLiteralNode {
-    async fn execute(&self, vm: &ValkyrieVM, scope: &ValkyrieScope) -> Box<dyn Future<Output = Self::Result>> {
+    #[async_recursion]
+    async fn execute(&self, vm: &ValkyrieVM, scope: &ValkyrieScope) -> Self::Result {
         todo!()
         // match number.unit {
         //     Some(s) => match s.name.as_str() {
@@ -233,7 +242,8 @@ impl Evaluate for NumberLiteralNode {
 }
 
 impl Evaluate for NamePathNode {
-    async fn execute(&self, vm: &ValkyrieVM, scope: &ValkyrieScope) -> Box<dyn Future<Output = Self::Result>> {
+    #[async_recursion]
+    async fn execute(&self, vm: &ValkyrieVM, scope: &ValkyrieScope) -> Self::Result {
         todo!()
         // let mut new = symbol.clone();
         // match symbol.names.len() {
@@ -256,7 +266,8 @@ impl Evaluate for NamePathNode {
 }
 
 impl Evaluate for TupleNode {
-    async fn execute(&self, vm: &ValkyrieVM, scope: &ValkyrieScope) -> Box<dyn Future<Output = Self::Result>> {
+    #[async_recursion]
+    async fn execute(&self, vm: &ValkyrieVM, scope: &ValkyrieScope) -> Self::Result {
         todo!()
         // let mut list = ValkyrieList::default();
         // for x in table.terms {
@@ -274,23 +285,36 @@ impl Evaluate for TupleNode {
 }
 
 impl Evaluate for StringLiteralNode {
-    async fn execute(&self, vm: &ValkyrieVM, scope: &ValkyrieScope) -> Box<dyn Future<Output = Self::Result>> {
-        todo!()
-        // match &self.handler {
-        //     Some(s) => match s.name.as_str() {
-        //         "r" => Ok(ValkyrieValue::UTF8String(Gc::new(self.as_raw().text))),
-        //         "re" => self.execute_regex(&self.literal),
-        //         "sh" => self.execute_shell(&self.literal).await,
-        //         "json" => self.execute_json(&self.literal),
-        //         "html" => Ok(ValkyrieValue::Html(Gc::new(self.as_raw().text))),
-        //         _ => Err(ValkyrieError::custom(format!("Unknown handler: {}", s.name))),
-        //     },
-        //     // TODO: template string
-        //     None => Ok(ValkyrieValue::UTF8String(Gc::new(self.as_escaped()))),
-        // }
+    #[async_recursion]
+    async fn execute(&self, vm: &ValkyrieVM, scope: &ValkyrieScope) -> Self::Result {
+        match &self.handler {
+            Some(s) => match s.name.as_str() {
+                // "r" => Ok(ValkyrieValue::UTF8String(Gc::new(self.as_raw().text))),
+                // "re" => self.execute_regex(&self.literal),
+                // "sh" => self.execute_shell(&self.literal).await,
+                // "json" => self.execute_json(&self.literal),
+                // "html" => Ok(ValkyrieValue::Html(Gc::new(self.as_raw().text))),
+                _ => Err(ValkyrieError::custom(format!("Unknown handler: {}", s.name))),
+            },
+            // TODO: template string
+            None => {
+                let mut sf = StringFormatterBuilder::new(FileID::default());
+                match sf.interpret(&self.literal) {
+                    Success { value, .. } => value.execute(vm, scope).await,
+                    Failure { .. } => {
+                        todo!()
+                    }
+                }
+            }
+        }
     }
 }
-
+impl Evaluate for FormatterNode {
+    #[async_recursion]
+    async fn execute(&self, vm: &ValkyrieVM, scope: &ValkyrieScope) -> Self::Result {
+        todo!()
+    }
+}
 fn execute_regex(string: &str) -> ValkyrieResult<ValkyrieValue> {
     Ok(ValkyrieValue::UTF8String(Gc::new(string.to_string())))
 }

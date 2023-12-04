@@ -2,7 +2,8 @@ use super::*;
 use valkyrie_ast::{PatternNode, VariableDeclaration, VariantDeclaration};
 
 impl Evaluate for VariableDeclaration {
-    async fn execute(&self, vm: &ValkyrieVM, scope: &ValkyrieScope) -> Box<dyn Future<Output = Self::Result>> {
+    #[async_recursion]
+    async fn execute(&self, vm: &ValkyrieVM, scope: &ValkyrieScope) -> Self::Result {
         todo!()
         // match bind.pattern {
         //     PatternNode::Tuple(t) => match t.terms.as_slice() {

@@ -1,7 +1,8 @@
 use super::*;
 
 impl Evaluate for ForLoop {
-    async fn execute(&self, vm: &ValkyrieVM, scope: &ValkyrieScope) -> Box<dyn Future<Output = Self::Result>> {
+    #[async_recursion]
+    async fn execute(&self, vm: &ValkyrieVM, scope: &ValkyrieScope) -> Self::Result {
         let Self { pattern, iterator, condition, label, body, span } = self;
 
         loop {

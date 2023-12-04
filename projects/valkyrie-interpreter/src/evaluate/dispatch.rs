@@ -2,11 +2,12 @@ use super::*;
 use valkyrie_ast::{ExpressionKind, ForLoop, StatementBlock, StatementKind};
 
 impl Evaluate for StatementBlock {
-    async fn execute(&self, vm: &ValkyrieVM, scope: &ValkyrieScope) -> Box<dyn Future<Output = Self::Result>> {
+    #[async_recursion]
+    async fn execute(&self, vm: &ValkyrieVM, scope: &ValkyrieScope) -> Self::Result {
         // `old { new }`
         let mut new = scope.fork();
         for term in &self.terms {
-            let result = term.execute(vm, &mut new).await.await;
+            let result = term.execute(vm, &mut new).await?;
             match result {
                 // 运行下一句
                 EvaluatedState::Normal(_) => continue,
@@ -26,7 +27,8 @@ impl Evaluate for StatementBlock {
 }
 
 impl Evaluate for StatementKind {
-    async fn execute(&self, vm: &ValkyrieVM, scope: &ValkyrieScope) -> Box<dyn Future<Output = Self::Result>> {
+    #[async_recursion]
+    async fn execute(&self, vm: &ValkyrieVM, scope: &ValkyrieScope) -> Self::Result {
         match self {
             StatementKind::Nothing => Ok(EvaluatedState::Normal(ValkyrieValue::Null)),
             StatementKind::Document(_) => {
@@ -74,13 +76,15 @@ impl Evaluate for StatementKind {
 }
 
 impl Evaluate for ExpressionNode {
-    async fn execute(&self, vm: &ValkyrieVM, scope: &ValkyrieScope) -> Box<dyn Future<Output = Self::Result>> {
+    #[async_recursion]
+    async fn execute(&self, vm: &ValkyrieVM, scope: &ValkyrieScope) -> Self::Result {
         let body = self.body.execute(vm, scope).await?;
         if self.omit { Ok(EvaluatedState::Normal(ValkyrieValue::Nothing)) } else { Ok(body) }
     }
 }
 impl Evaluate for ExpressionKind {
-    async fn execute(&self, vm: &ValkyrieVM, scope: &ValkyrieScope) -> Box<dyn Future<Output = Self::Result>> {
+    #[async_recursion]
+    async fn execute(&self, vm: &ValkyrieVM, scope: &ValkyrieScope) -> Self::Result {
         match self {
             ExpressionKind::Placeholder => Err(ValkyrieError::custom("Placeholder expression should never be executed")),
             ExpressionKind::GenericCall(_) => {

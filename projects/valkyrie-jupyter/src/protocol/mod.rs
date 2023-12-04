@@ -1,13 +1,11 @@
 use crate::executor::ValkyrieExecutor;
 use jupyter::{
-    async_trait, Executed, ExecutionReply, ExecutionRequest, ExecutionResult, JupyterConnection, JupyterError,
-    JupyterKernelProtocol, LanguageInfo, UnboundedSender, Value,
+    Executed, ExecutionReply, ExecutionRequest, JupyterConnection, JupyterError, JupyterKernelProtocol, LanguageInfo, Value,
 };
-use jupyter_derive::{include_png32, include_png64};
+use jupyter_derive::include_png32;
 
 pub mod display;
 
-#[async_trait]
 impl JupyterKernelProtocol for ValkyrieExecutor {
     fn language_info(&self) -> LanguageInfo {
         let mut info =

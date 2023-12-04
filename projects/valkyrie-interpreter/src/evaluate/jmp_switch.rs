@@ -2,7 +2,8 @@ use super::*;
 use valkyrie_ast::{ExpressionKind, PatternCondition, PatternWhenNode};
 
 impl Evaluate for SwitchStatement {
-    async fn execute(&self, vm: &ValkyrieVM, scope: &ValkyrieScope) -> Box<dyn Future<Output = Self::Result>> {
+    #[async_recursion]
+    async fn execute(&self, vm: &ValkyrieVM, scope: &ValkyrieScope) -> Self::Result {
         let mut last = ValkyrieValue::Unit;
         // for branch in node.branches {
         //     let is_true = match branch.condition {
@@ -26,7 +27,8 @@ impl Evaluate for SwitchStatement {
 }
 
 impl Evaluate for PatternWhenNode {
-    async fn execute(&self, vm: &ValkyrieVM, scope: &ValkyrieScope) -> Box<dyn Future<Output = Self::Result>> {
+    #[async_recursion]
+    async fn execute(&self, vm: &ValkyrieVM, scope: &ValkyrieScope) -> Self::Result {
         todo!()
         // match self.execute_expression_term(node.guard).await? {
         //     ValkyrieValue::Boolean(v) => Ok(v),
